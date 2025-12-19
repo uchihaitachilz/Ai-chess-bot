@@ -22,8 +22,10 @@ def _find_stockfish_path() -> str:
     if env_path and os.path.exists(env_path):
         return env_path
     
-    # Common locations (Debian/Ubuntu typically uses /usr/games/stockfish)
+    # Common locations (check user-installed first, then system)
+    home_dir = os.path.expanduser("~")
     common_paths = [
+        f"{home_dir}/stockfish/stockfish",  # User-installed via script
         "/usr/games/stockfish",  # Debian/Ubuntu standard location
         "/usr/bin/stockfish",
         "/opt/homebrew/bin/stockfish",
