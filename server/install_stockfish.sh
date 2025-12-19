@@ -38,22 +38,41 @@ try:
         release_data = json.loads(response.read())
     
     print(f"Release: {release_data.get('tag_name', 'unknown')}")
-    print(f"Found {len(release_data.get('assets', []))} assets")
+    assets = release_data.get('assets', [])
+    print(f"Found {len(assets)} assets")
     
-    # Find all Linux x64 AVX2 assets (zip or binary)
-    for asset in release_data.get('assets', []):
-        name = asset.get('name', '')
+    # Print first few asset names for debugging
+    print("Sample asset names:")
+    for asset in assets[:5]:
+        print(f"  - {asset.get('name', 'unknown')}")
+    
+    # Find all Linux x64 AVX2 assets (zip or binary) - be more flexible with matching
+    for asset in assets:
+        name = asset.get('name', '').lower()
         url = asset.get('browser_download_url')
-        if url and 'linux' in name.lower() and 'x64' in name.lower() and 'avx2' in name.lower():
-            if name.endswith('.zip'):
-                print(f"Found zip asset: {name}")
+        if not url:
+            continue
+        
+        # More flexible matching - check for linux and x64, avx2 is optional
+        is_linux = 'linux' in name
+        is_x64 = 'x64' in name or 'x86_64' in name or 'amd64' in name
+        is_avx2 = 'avx2' in name
+        is_zip = name.endswith('.zip')
+        is_binary = not name.endswith('.md') and not name.endswith('.txt') and not name.endswith('.sha256') and not name.endswith('.sig')
+        
+        if is_linux and is_x64 and is_binary:
+            if is_zip:
+                print(f"Found zip asset: {asset.get('name', '')}")
                 urls.append(url)
-            elif not name.endswith('.md') and not name.endswith('.txt'):
-                print(f"Found binary asset: {name}")
+            elif is_avx2 or len(urls) == 0:  # Prefer AVX2, but accept any if none found
+                print(f"Found binary asset: {asset.get('name', '')}")
                 urls.append(url)
     
     if not urls:
-        print("No matching assets found in release, trying tag-based URLs...")
+        print("No matching assets found. Listing all assets:")
+        for asset in assets:
+            print(f"  - {asset.get('name', 'unknown')}")
+        print("\nTrying tag-based URLs...")
         tag = release_data.get('tag_name', '').replace('sf_', '')
         # Try common naming patterns
         base_url = f"https://github.com/official-stockfish/Stockfish/releases/download/{release_data.get('tag_name', '')}"
