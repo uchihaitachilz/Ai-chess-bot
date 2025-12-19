@@ -107,15 +107,18 @@ function App() {
               <span className="inline-block animate-bounce" style={{ animationDelay: '0.3s' }}>H</span>
               <span className="inline-block animate-bounce" style={{ animationDelay: '0.4s' }}>I</span>
               {' '}
-              <span className="inline-block animate-bounce" style={{ animationDelay: '0.5s' }}>C</span>
-              <span className="inline-block animate-bounce" style={{ animationDelay: '0.6s' }}>H</span>
-              <span className="inline-block animate-bounce" style={{ animationDelay: '0.7s' }}>E</span>
-              <span className="inline-block animate-bounce" style={{ animationDelay: '0.8s' }}>S</span>
-              <span className="inline-block animate-bounce" style={{ animationDelay: '0.9s' }}>S</span>
+              <span className="inline-block animate-bounce" style={{ animationDelay: '0.5s' }}>A</span>
+              <span className="inline-block animate-bounce" style={{ animationDelay: '0.6s' }}>I</span>
               {' '}
-              <span className="inline-block animate-bounce" style={{ animationDelay: '1.0s' }}>B</span>
-              <span className="inline-block animate-bounce" style={{ animationDelay: '1.1s' }}>O</span>
-              <span className="inline-block animate-bounce" style={{ animationDelay: '1.2s' }}>T</span>
+              <span className="inline-block animate-bounce" style={{ animationDelay: '0.7s' }}>C</span>
+              <span className="inline-block animate-bounce" style={{ animationDelay: '0.8s' }}>H</span>
+              <span className="inline-block animate-bounce" style={{ animationDelay: '0.9s' }}>E</span>
+              <span className="inline-block animate-bounce" style={{ animationDelay: '1.0s' }}>S</span>
+              <span className="inline-block animate-bounce" style={{ animationDelay: '1.1s' }}>S</span>
+              {' '}
+              <span className="inline-block animate-bounce" style={{ animationDelay: '1.2s' }}>B</span>
+              <span className="inline-block animate-bounce" style={{ animationDelay: '1.3s' }}>O</span>
+              <span className="inline-block animate-bounce" style={{ animationDelay: '1.4s' }}>T</span>
             </h1>
             <p className="text-white text-lg md:text-xl font-medium animate-fade-in-delay drop-shadow-md">
               Play against Tushar Anand
