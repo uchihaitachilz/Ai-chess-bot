@@ -28,7 +28,26 @@ def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
     # Try Python stockfish package first (works on Render without system installation)
     if USE_PYTHON_STOCKFISH:
         try:
-            sf = PyStockfish()
+            # Try to find stockfish in common locations
+            stockfish_paths = [
+                "/usr/bin/stockfish",
+                "/usr/games/stockfish",
+                "/opt/homebrew/bin/stockfish",
+                "stockfish"  # Let it try to find in PATH
+            ]
+            
+            sf = None
+            for path in stockfish_paths:
+                try:
+                    sf = PyStockfish(path=path)
+                    break
+                except:
+                    continue
+            
+            if sf is None:
+                # Try without path (let package handle it)
+                sf = PyStockfish()
+            
             sf.depth = ENGINE_DEPTH
             sf.set_fen_position(board_fen)
             best_move = sf.get_best_move()
