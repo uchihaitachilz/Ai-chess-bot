@@ -24,6 +24,7 @@ if [ ! -f "$STOCKFISH_BIN" ]; then
         python3 << 'PYTHON_SCRIPT'
 import urllib.request
 import zipfile
+import tarfile
 import os
 import stat
 import sys
@@ -53,20 +54,27 @@ try:
         if not url:
             continue
         
-        # More flexible matching - check for linux and x64, avx2 is optional
-        is_linux = 'linux' in name
-        is_x64 = 'x64' in name or 'x86_64' in name or 'amd64' in name
-        is_avx2 = 'avx2' in name
-        is_zip = name.endswith('.zip')
-        is_binary = not name.endswith('.md') and not name.endswith('.txt') and not name.endswith('.sha256') and not name.endswith('.sig')
-        
-        if is_linux and is_x64 and is_binary:
-            if is_zip:
-                print(f"Found zip asset: {asset.get('name', '')}")
-                urls.append(url)
-            elif is_avx2 or len(urls) == 0:  # Prefer AVX2, but accept any if none found
-                print(f"Found binary asset: {asset.get('name', '')}")
-                urls.append(url)
+    # Match ubuntu/linux and x64, prefer avx2
+    is_linux = 'linux' in name or 'ubuntu' in name
+    is_x64 = 'x64' in name or 'x86_64' in name or 'amd64' in name
+    is_avx2 = 'avx2' in name
+    is_zip = name.endswith('.zip')
+    is_tar = name.endswith('.tar') or name.endswith('.tar.gz')
+    is_binary = (is_zip or is_tar) and not name.endswith('.md') and not name.endswith('.txt') and not name.endswith('.sha256') and not name.endswith('.sig')
+    
+    if is_linux and is_x64 and is_binary:
+        priority = 2 if is_avx2 else 1  # Prefer AVX2
+        asset_info = {
+            'url': url,
+            'name': asset.get('name', ''),
+            'priority': priority,
+            'is_zip': is_zip,
+            'is_tar': is_tar
+        }
+        urls.append(asset_info)
+    
+    # Sort by priority (AVX2 first)
+    urls.sort(key=lambda x: x['priority'], reverse=True)
     
     if not urls:
         print("No matching assets found. Listing all assets:")
@@ -77,9 +85,8 @@ try:
         # Try common naming patterns
         base_url = f"https://github.com/official-stockfish/Stockfish/releases/download/{release_data.get('tag_name', '')}"
         urls = [
-            f"{base_url}/stockfish_{tag}_linux_x64_avx2.zip",
-            f"{base_url}/stockfish-{tag}-linux-x64-avx2.zip",
-            f"{base_url}/stockfish_{release_data.get('tag_name', '')}_linux_x64_avx2.zip",
+            {'url': f"{base_url}/stockfish-ubuntu-x86-64-avx2.tar", 'name': 'fallback-avx2.tar', 'priority': 2, 'is_zip': False, 'is_tar': True},
+            {'url': f"{base_url}/stockfish-ubuntu-x86-64.tar", 'name': 'fallback.tar', 'priority': 1, 'is_zip': False, 'is_tar': True},
         ]
 except Exception as e:
     print(f"Could not fetch release info: {e}")
@@ -93,12 +100,14 @@ except Exception as e:
 
 success = False
 
-for url in urls:
-    print(f"\nTrying: {url}")
+for asset_info in urls:
+    url = asset_info['url']
+    asset_name = asset_info['name']
+    is_zip = asset_info.get('is_zip', False)
+    is_tar = asset_info.get('is_tar', False)
+    
+    print(f"\nTrying: {asset_name} ({url})")
     try:
-        # Check if it's a zip or binary
-        is_zip = url.endswith('.zip') or '.zip' in url.lower()
-        
         if is_zip:
             zip_path = "stockfish.zip"
             # Download zip
@@ -159,6 +168,66 @@ for url in urls:
                     if os.path.isdir(item):
                         import shutil
                         shutil.rmtree(item)
+        elif is_tar:
+            tar_path = "stockfish.tar"
+            # Download tar
+            def show_progress(block_num, block_size, total_size):
+                if total_size > 0 and block_num % 50 == 0:
+                    percent = min(100, (block_num * block_size * 100) // total_size)
+                    print(f"Progress: {percent}%", end='\r', file=sys.stderr)
+            
+            urllib.request.urlretrieve(url, tar_path, show_progress)
+            print("\nDownload complete")
+            
+            # Verify file size
+            file_size = os.path.getsize(tar_path)
+            if file_size < 1048576:
+                print(f"File too small ({file_size} bytes), trying next URL...")
+                os.remove(tar_path)
+                continue
+            
+            print(f"File size: {file_size / 1024 / 1024:.2f} MB")
+            
+            # Extract tar
+            print("Extracting tar archive...")
+            with tarfile.open(tar_path, 'r') as tar_ref:
+                tar_ref.extractall(".")
+            
+            # Find the binary
+            binary_found = False
+            for root, dirs, files in os.walk("."):
+                for file in files:
+                    if file.startswith("stockfish") and not file.endswith(".tar") and not file.endswith(".txt") and not file.endswith(".md"):
+                        src = os.path.join(root, file)
+                        if os.path.isfile(src) and os.path.getsize(src) > 1000000:  # > 1MB
+                            dst = "stockfish"
+                            if os.path.exists(dst):
+                                os.remove(dst)
+                            os.rename(src, dst)
+                            os.chmod(dst, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                            print(f"Found binary: {src} -> {dst}")
+                            binary_found = True
+                            break
+                if binary_found:
+                    break
+            
+            if binary_found:
+                # Cleanup
+                os.remove(tar_path)
+                for item in os.listdir("."):
+                    if os.path.isdir(item) and item.startswith("stockfish"):
+                        import shutil
+                        shutil.rmtree(item)
+                print("SUCCESS: Stockfish extracted and ready")
+                success = True
+                break
+            else:
+                print("Binary not found in archive, trying next URL...")
+                os.remove(tar_path)
+                for item in os.listdir("."):
+                    if os.path.isdir(item):
+                        import shutil
+                        shutil.rmtree(item)
         else:
             # Direct binary download
             print("Downloading binary directly...")
@@ -169,11 +238,10 @@ for url in urls:
             break
             
     except Exception as e:
-        print(f"Error with {url}: {e}")
-        if os.path.exists("stockfish.zip"):
-            os.remove("stockfish.zip")
-        if os.path.exists("stockfish"):
-            os.remove("stockfish")
+        print(f"Error with {asset_name}: {e}")
+        for cleanup_file in ["stockfish.zip", "stockfish.tar", "stockfish"]:
+            if os.path.exists(cleanup_file):
+                os.remove(cleanup_file)
         continue
 
 if not success:
