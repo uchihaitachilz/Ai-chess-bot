@@ -1,0 +1,13 @@
+# Ignore generated files
+chroma_db/
+*.json
+material/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.venv
+
