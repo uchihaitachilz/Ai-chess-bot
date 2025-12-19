@@ -48,6 +48,28 @@ def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
     board = chess.Board(board_fen)
     engine_path = _find_stockfish_path()
     
+    # Verify the path exists before trying to use it
+    if not os.path.exists(engine_path):
+        # Try to find it in PATH as a last resort
+        stockfish_in_path = shutil.which("stockfish")
+        if stockfish_in_path:
+            engine_path = stockfish_in_path
+        else:
+            # List all possible locations for debugging
+            all_paths = [
+                "/usr/games/stockfish",
+                "/usr/bin/stockfish",
+                "/opt/homebrew/bin/stockfish",
+                "/usr/local/bin/stockfish",
+            ]
+            existing_paths = [p for p in all_paths if os.path.exists(p)]
+            raise RuntimeError(
+                f"Stockfish not found. Checked: {all_paths}. "
+                f"Existing paths: {existing_paths}. "
+                f"PATH contains: {os.environ.get('PATH', 'N/A')}. "
+                f"Please ensure Stockfish is installed via: sudo apt-get install -y stockfish"
+            )
+    
     try:
         engine = chess.engine.SimpleEngine.popen_uci(engine_path)
         
