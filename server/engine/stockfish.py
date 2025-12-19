@@ -7,74 +7,49 @@ import chess
 import chess.engine
 import os
 import asyncio
+import shutil
 from typing import Tuple
 
-# Try to use Python stockfish package first, fallback to system installation
-try:
-    from stockfish import Stockfish as PyStockfish
-    USE_PYTHON_STOCKFISH = True
-except ImportError:
-    USE_PYTHON_STOCKFISH = False
-
 # Stockfish engine path (configurable via environment variable)
-ENGINE_PATH = os.getenv("ENGINE_PATH", "/usr/bin/stockfish")
+# Try multiple common locations
 ENGINE_DEPTH = int(os.getenv("ENGINE_DEPTH", "12"))
 
 
+def _find_stockfish_path() -> str:
+    """Find Stockfish executable in common locations."""
+    # Check environment variable first
+    env_path = os.getenv("ENGINE_PATH")
+    if env_path and os.path.exists(env_path):
+        return env_path
+    
+    # Common locations
+    common_paths = [
+        "/usr/bin/stockfish",
+        "/usr/games/stockfish",
+        "/opt/homebrew/bin/stockfish",
+        "/usr/local/bin/stockfish",
+    ]
+    
+    for path in common_paths:
+        if os.path.exists(path):
+            return path
+    
+    # Try to find in PATH
+    stockfish_path = shutil.which("stockfish")
+    if stockfish_path:
+        return stockfish_path
+    
+    # Default fallback
+    return "/usr/bin/stockfish"
+
+
 def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
-    """Synchronously get the best move."""
+    """Synchronously get the best move using python-chess SimpleEngine."""
     board = chess.Board(board_fen)
+    engine_path = _find_stockfish_path()
     
-    # Try Python stockfish package first (works on Render without system installation)
-    if USE_PYTHON_STOCKFISH:
-        try:
-            # Try to find stockfish in common locations
-            stockfish_paths = [
-                "/usr/bin/stockfish",
-                "/usr/games/stockfish",
-                "/opt/homebrew/bin/stockfish",
-                "stockfish"  # Let it try to find in PATH
-            ]
-            
-            sf = None
-            for path in stockfish_paths:
-                try:
-                    sf = PyStockfish(path=path)
-                    break
-                except:
-                    continue
-            
-            if sf is None:
-                # Try without path (let package handle it)
-                sf = PyStockfish()
-            
-            sf.depth = ENGINE_DEPTH
-            sf.set_fen_position(board_fen)
-            best_move = sf.get_best_move()
-            
-            if not best_move:
-                raise ValueError("No best move returned")
-            
-            # Apply the move and get evaluation of new position
-            board.push(chess.Move.from_uci(best_move))
-            sf.set_fen_position(board.fen())
-            eval_after = sf.get_evaluation()
-            
-            # Convert evaluation to pawns
-            if eval_after['type'] == 'mate':
-                evaluation = 100.0 if eval_after['value'] > 0 else -100.0
-            else:
-                # Convert centipawns to pawns
-                evaluation = float(eval_after['value']) / 100.0
-            
-            return best_move, evaluation
-        except Exception as e:
-            print(f"Python Stockfish failed: {e}, falling back to system Stockfish")
-            # Continue to fallback
-    
-    # Fallback to system Stockfish (python-chess)
     try:
-        engine = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
+        engine = chess.engine.SimpleEngine.popen_uci(engine_path)
         
         try:
             limit = chess.engine.Limit(depth=ENGINE_DEPTH)
@@ -105,7 +80,10 @@ def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
         finally:
             engine.quit()
     except Exception as e:
-        raise RuntimeError(f"Both Python Stockfish and system Stockfish failed. Error: {str(e)}")
+        raise RuntimeError(
+            f"Failed to get best move from Stockfish at {engine_path}. "
+            f"Make sure Stockfish is installed. Error: {str(e)}"
+        )
 
 
 async def get_best_move(board: chess.Board) -> Tuple[str, float]:
