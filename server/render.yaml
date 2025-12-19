@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: tushi-chess-bot-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: ENGINE_PATH
+        value: /usr/bin/stockfish
+      - key: ENGINE_DEPTH
+        value: 12
+      - key: OPENAI_API_KEY
+        sync: false  # Set this manually in Render dashboard
+      - key: OPENAI_BASE_URL
+        value: https://api.openai.com/v1
+      - key: OPENAI_MODEL
+        value: gpt-3.5-turbo
+

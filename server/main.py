@@ -24,7 +24,12 @@ app = FastAPI(title="Chess Bot API")
 # CORS middleware to allow frontend requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://*.onrender.com",  # Allow all Render subdomains
+        "https://*.vercel.app",    # Allow all Vercel subdomains
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
