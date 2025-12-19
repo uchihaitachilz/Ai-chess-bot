@@ -28,28 +28,24 @@ def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
     # Try Python stockfish package first (works on Render without system installation)
     if USE_PYTHON_STOCKFISH:
         try:
-            sf = PyStockfish(depth=ENGINE_DEPTH)
+            sf = PyStockfish()
+            sf.depth = ENGINE_DEPTH
             sf.set_fen_position(board_fen)
             best_move = sf.get_best_move()
             
             if not best_move:
                 raise ValueError("No best move returned")
             
-            # Get evaluation of current position
-            evaluation_info = sf.get_evaluation()
-            if evaluation_info['type'] == 'mate':
-                evaluation = 100.0 if evaluation_info['value'] > 0 else -100.0
-            else:
-                # Convert centipawns to pawns
-                evaluation = float(evaluation_info['value']) / 100.0
-            
             # Apply the move and get evaluation of new position
             board.push(chess.Move.from_uci(best_move))
             sf.set_fen_position(board.fen())
             eval_after = sf.get_evaluation()
+            
+            # Convert evaluation to pawns
             if eval_after['type'] == 'mate':
                 evaluation = 100.0 if eval_after['value'] > 0 else -100.0
             else:
+                # Convert centipawns to pawns
                 evaluation = float(eval_after['value']) / 100.0
             
             return best_move, evaluation
