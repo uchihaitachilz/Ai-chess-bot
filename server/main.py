@@ -27,9 +27,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
-        "https://*.onrender.com",  # Allow all Render subdomains
-        "https://*.vercel.app",    # Allow all Vercel subdomains
     ],
+    allow_origin_regex=r"https://.*\.(onrender\.com|vercel\.app)",  # Regex for Render and Vercel subdomains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
