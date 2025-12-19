@@ -29,7 +29,8 @@ function App() {
       setFen(newGame.fen())
       
       // Now make backend call in the background (non-blocking)
-      fetch('http://localhost:8000/api/move', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      fetch(`${apiUrl}/api/move`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
