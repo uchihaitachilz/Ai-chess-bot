@@ -22,21 +22,31 @@ def _find_stockfish_path() -> str:
     if env_path and os.path.exists(env_path):
         return env_path
     
-    # Check for engine_path.txt file (created by install script)
-    home_dir = os.path.expanduser("~")
-    engine_path_file = f"{home_dir}/stockfish/engine_path.txt"
-    if os.path.exists(engine_path_file):
-        try:
-            with open(engine_path_file, 'r') as f:
-                saved_path = f.read().strip()
-                if saved_path and os.path.exists(saved_path) and os.access(saved_path, os.X_OK):
-                    return saved_path
-        except Exception:
-            pass  # Fall through to other checks
+    # Get the server directory (where main.py is located)
+    server_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    project_stockfish_dir = os.path.join(server_dir, "stockfish")
     
-    # Common locations (check user-installed first, then system)
+    # Check for engine_path.txt file (created by install script) in both locations
+    home_dir = os.path.expanduser("~")
+    engine_path_files = [
+        os.path.join(project_stockfish_dir, "engine_path.txt"),  # Project directory
+        f"{home_dir}/stockfish/engine_path.txt",  # Home directory
+    ]
+    
+    for engine_path_file in engine_path_files:
+        if os.path.exists(engine_path_file):
+            try:
+                with open(engine_path_file, 'r') as f:
+                    saved_path = f.read().strip()
+                    if saved_path and os.path.exists(saved_path) and os.access(saved_path, os.X_OK):
+                        return saved_path
+            except Exception:
+                pass  # Fall through to other checks
+    
+    # Common locations (check project directory first, then home, then system)
     common_paths = [
-        f"{home_dir}/stockfish/stockfish",  # User-installed via script (Render)
+        os.path.join(project_stockfish_dir, "stockfish"),  # Project directory (persists)
+        f"{home_dir}/stockfish/stockfish",  # Home directory
         "/usr/games/stockfish",  # Debian/Ubuntu standard location
         "/usr/bin/stockfish",
         "/opt/homebrew/bin/stockfish",
@@ -69,12 +79,18 @@ def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
         if stockfish_in_path:
             engine_path = stockfish_in_path
         else:
-            # List all possible locations for debugging (including home directory)
+            # List all possible locations for debugging (including project and home directory)
             home_dir = os.path.expanduser("~")
-            engine_path_file = f"{home_dir}/stockfish/engine_path.txt"
+            server_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            project_stockfish_dir = os.path.join(server_dir, "stockfish")
+            engine_path_files = [
+                os.path.join(project_stockfish_dir, "engine_path.txt"),
+                f"{home_dir}/stockfish/engine_path.txt",
+            ]
             all_paths = [
-                f"{home_dir}/stockfish/stockfish",  # User-installed location
-                engine_path_file,  # Path file from install script
+                os.path.join(project_stockfish_dir, "stockfish"),  # Project directory
+                f"{home_dir}/stockfish/stockfish",  # Home directory
+            ] + engine_path_files + [
                 "/usr/games/stockfish",
                 "/usr/bin/stockfish",
                 "/opt/homebrew/bin/stockfish",
@@ -85,19 +101,22 @@ def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
             
             # Check if engine_path.txt exists and what it contains
             path_file_info = ""
-            if os.path.exists(engine_path_file):
-                try:
-                    with open(engine_path_file, 'r') as f:
-                        saved_path = f.read().strip()
-                        path_file_info = f" (contains: {saved_path}, exists: {os.path.exists(saved_path) if saved_path else False})"
-                except Exception as e:
-                    path_file_info = f" (read error: {e})"
+            for engine_path_file in engine_path_files:
+                if os.path.exists(engine_path_file):
+                    try:
+                        with open(engine_path_file, 'r') as f:
+                            saved_path = f.read().strip()
+                            path_file_info += f" {engine_path_file} (contains: {saved_path}, exists: {os.path.exists(saved_path) if saved_path else False});"
+                    except Exception as e:
+                        path_file_info += f" {engine_path_file} (read error: {e});"
             
             raise RuntimeError(
                 f"Stockfish not found. Checked: {all_paths}. "
                 f"Existing paths: {existing_paths}. "
                 f"Executable paths: {executable_paths}. "
-                f"Path file{path_file_info}. "
+                f"Path files:{path_file_info if path_file_info else ' none found'}. "
+                f"Server dir: {server_dir}. "
+                f"Project stockfish dir: {project_stockfish_dir}. "
                 f"HOME: {home_dir}. "
                 f"PATH contains: {os.environ.get('PATH', 'N/A')}. "
                 f"Please ensure Stockfish is installed."

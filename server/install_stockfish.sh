@@ -3,7 +3,20 @@
 
 set -e
 
-STOCKFISH_DIR="$HOME/stockfish"
+# Try to install to project directory first (persists), fallback to $HOME
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_STOCKFISH_DIR="$SCRIPT_DIR/stockfish"
+HOME_STOCKFISH_DIR="$HOME/stockfish"
+
+# Prefer project directory (persists across builds), fallback to $HOME
+if [ -w "$SCRIPT_DIR" ]; then
+    STOCKFISH_DIR="$PROJECT_STOCKFISH_DIR"
+    echo "Installing Stockfish to project directory: $STOCKFISH_DIR"
+else
+    STOCKFISH_DIR="$HOME_STOCKFISH_DIR"
+    echo "Installing Stockfish to home directory: $STOCKFISH_DIR"
+fi
+
 STOCKFISH_BIN="$STOCKFISH_DIR/stockfish"
 
 # Create directory if it doesn't exist
@@ -511,9 +524,17 @@ echo "Stockfish installed at: $STOCKFISH_BIN"
 if [ -f "$STOCKFISH_BIN" ]; then
     "$STOCKFISH_BIN" --version || echo "Binary exists but version check failed"
     echo "SUCCESS: Stockfish is ready at $STOCKFISH_BIN"
-    # Write path to file for Python to read
+    # Write path to file for Python to read (in the directory where binary is)
     echo "$STOCKFISH_BIN" > "$STOCKFISH_DIR/engine_path.txt"
     echo "Wrote engine path to: $STOCKFISH_DIR/engine_path.txt"
+    
+    # Also write to project directory if different from install directory
+    if [ "$STOCKFISH_DIR" != "$PROJECT_STOCKFISH_DIR" ] && [ -w "$SCRIPT_DIR" ]; then
+        mkdir -p "$PROJECT_STOCKFISH_DIR"
+        echo "$STOCKFISH_BIN" > "$PROJECT_STOCKFISH_DIR/engine_path.txt"
+        echo "Also wrote engine path to: $PROJECT_STOCKFISH_DIR/engine_path.txt"
+    fi
+    
     # Also export for current session (though this won't persist to runtime)
     export ENGINE_PATH="$STOCKFISH_BIN"
     echo "ENGINE_PATH=$STOCKFISH_BIN"

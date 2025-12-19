@@ -4,7 +4,7 @@ services:
     env: python
     plan: free
     pythonVersion: 3.11
-    buildCommand: chmod +x install_stockfish.sh && ./install_stockfish.sh && pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
+    buildCommand: cd server && chmod +x install_stockfish.sh && ./install_stockfish.sh && pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: ENGINE_PATH
