@@ -9,6 +9,13 @@ import os
 import asyncio
 from typing import Tuple
 
+# Try to use Python stockfish package first, fallback to system installation
+try:
+    from stockfish import Stockfish as PyStockfish
+    USE_PYTHON_STOCKFISH = True
+except ImportError:
+    USE_PYTHON_STOCKFISH = False
+
 # Stockfish engine path (configurable via environment variable)
 ENGINE_PATH = os.getenv("ENGINE_PATH", "/usr/bin/stockfish")
 ENGINE_DEPTH = int(os.getenv("ENGINE_DEPTH", "12"))
@@ -17,6 +24,36 @@ ENGINE_DEPTH = int(os.getenv("ENGINE_DEPTH", "12"))
 def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
     """Synchronously get the best move."""
     board = chess.Board(board_fen)
+    
+    # Try Python stockfish package first (works on Render without system installation)
+    if USE_PYTHON_STOCKFISH:
+        try:
+            sf = PyStockfish()
+            sf.set_depth(ENGINE_DEPTH)
+            sf.set_fen_position(board_fen)
+            best_move = sf.get_best_move()
+            
+            # Get evaluation
+            evaluation_info = sf.get_evaluation()
+            if evaluation_info['type'] == 'mate':
+                evaluation = 100.0 if evaluation_info['value'] > 0 else -100.0
+            else:
+                evaluation = float(evaluation_info['value']) / 100.0
+            
+            # Apply the move to get new position
+            board.push(chess.Move.from_uci(best_move))
+            sf.set_fen_position(board.fen())
+            eval_after = sf.get_evaluation()
+            if eval_after['type'] == 'mate':
+                evaluation = 100.0 if eval_after['value'] > 0 else -100.0
+            else:
+                evaluation = float(eval_after['value']) / 100.0
+            
+            return best_move, evaluation
+        except Exception as e:
+            print(f"Python Stockfish failed: {e}, falling back to system Stockfish")
+    
+    # Fallback to system Stockfish
     engine = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
     
     try:
