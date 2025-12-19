@@ -17,72 +17,89 @@ if [ ! -f "$STOCKFISH_BIN" ]; then
     ARCH=$(uname -m)
     
     if [ "$ARCH" = "x86_64" ]; then
-        # Linux x86_64 - download Stockfish 16 binary directly
-        echo "Downloading Stockfish binary..."
+        # Linux x86_64 - download Stockfish using Python (more reliable)
+        echo "Downloading Stockfish using Python..."
         
-        # Try direct binary download first (faster, no extraction needed)
-        STOCKFISH_BINARY_URL="https://github.com/official-stockfish/Stockfish/releases/download/sf_16/stockfish_16_linux_x64_avx2"
-        
-        # Download the binary directly
-        if curl -L -f -o "$STOCKFISH_BIN" "$STOCKFISH_BINARY_URL" 2>/dev/null; then
-            chmod +x "$STOCKFISH_BIN"
-            echo "Downloaded binary directly"
-        else
-            echo "Direct download failed, trying zip archive..."
-            # Fallback to zip download
-            STOCKFISH_URL="https://github.com/official-stockfish/Stockfish/releases/download/sf_16/stockfish_16_linux_x64_avx2.zip"
-            
-            cd "$STOCKFISH_DIR"
-            curl -L -f -o stockfish.zip "$STOCKFISH_URL" || {
-                echo "Failed to download from GitHub, trying alternative..."
-                # Try alternative download method
-                wget -q -O stockfish.zip "$STOCKFISH_URL" 2>/dev/null || {
-                    echo "All download methods failed"
-                    exit 1
-                }
-            }
-            
-            # Verify zip file is valid (at least 1MB)
-            if [ ! -s stockfish.zip ] || [ $(stat -f%z stockfish.zip 2>/dev/null || stat -c%s stockfish.zip 2>/dev/null || echo 0) -lt 1048576 ]; then
-                echo "Downloaded file is too small or invalid, trying Python download..."
-                python3 << 'PYTHON_SCRIPT'
+        cd "$STOCKFISH_DIR"
+        python3 << 'PYTHON_SCRIPT'
 import urllib.request
+import zipfile
 import os
+import stat
+
+# Download Stockfish 16
 url = "https://github.com/official-stockfish/Stockfish/releases/download/sf_16/stockfish_16_linux_x64_avx2.zip"
-filepath = "stockfish.zip"
+zip_path = "stockfish.zip"
+
+print(f"Downloading from {url}...")
 try:
-    urllib.request.urlretrieve(url, filepath)
-    if os.path.getsize(filepath) > 1048576:  # > 1MB
-        print("Download successful via Python")
-    else:
-        print("Downloaded file too small")
+    # Download with progress
+    def show_progress(block_num, block_size, total_size):
+        if total_size > 0:
+            percent = min(100, (block_num * block_size * 100) // total_size)
+            if block_num % 10 == 0:  # Print every 10 blocks
+                print(f"Progress: {percent}%", end='\r')
+    
+    urllib.request.urlretrieve(url, zip_path, show_progress)
+    print("\nDownload complete")
+    
+    # Verify file size (should be > 1MB)
+    file_size = os.path.getsize(zip_path)
+    if file_size < 1048576:
+        print(f"ERROR: Downloaded file too small ({file_size} bytes)")
         exit(1)
+    
+    print(f"File size: {file_size / 1024 / 1024:.2f} MB")
+    
+    # Extract zip
+    print("Extracting...")
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(".")
+    
+    # Find the binary
+    binary_found = False
+    for root, dirs, files in os.walk("."):
+        for file in files:
+            if file.startswith("stockfish") and not file.endswith(".zip") and not file.endswith(".txt"):
+                src = os.path.join(root, file)
+                # Check if it's executable or a binary
+                if os.path.isfile(src):
+                    dst = "stockfish"
+                    os.rename(src, dst)
+                    # Make executable
+                    os.chmod(dst, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                    print(f"Found binary: {src} -> {dst}")
+                    binary_found = True
+                    break
+        if binary_found:
+            break
+    
+    if not binary_found:
+        print("ERROR: Could not find stockfish binary in archive")
+        exit(1)
+    
+    # Cleanup
+    os.remove(zip_path)
+    # Remove extracted directory if exists
+    for item in os.listdir("."):
+        if os.path.isdir(item) and item.startswith("stockfish"):
+            import shutil
+            shutil.rmtree(item)
+    
+    print("SUCCESS: Stockfish extracted and ready")
+    
 except Exception as e:
-    print(f"Python download failed: {e}")
+    print(f"ERROR: {e}")
+    import traceback
+    traceback.print_exc()
     exit(1)
 PYTHON_SCRIPT
-            fi
-            
-            # Extract zip
-            if command -v unzip &> /dev/null; then
-                unzip -q stockfish.zip || exit 1
-            else
-                python3 -m zipfile -e stockfish.zip . || exit 1
-            fi
-            
-            # Find the stockfish binary in the extracted files
-            if [ -f "stockfish_16_linux_x64_avx2" ]; then
-                cp stockfish_16_linux_x64_avx2 "$STOCKFISH_BIN"
-            else
-                find . -name "stockfish*" -type f ! -name "*.zip" ! -name "*.txt" | head -1 | xargs -I {} cp {} "$STOCKFISH_BIN" || {
-                    if [ -d "stockfish_16_linux_x64_avx2" ]; then
-                        find stockfish_16_linux_x64_avx2 -name "stockfish*" -type f ! -name "*.zip" | head -1 | xargs -I {} cp {} "$STOCKFISH_BIN"
-                    fi
-                }
-            fi
-            
-            chmod +x "$STOCKFISH_BIN"
-            rm -rf stockfish.zip stockfish_16_linux_x64_avx2 2>/dev/null || true
+        
+        if [ -f "$STOCKFISH_BIN" ]; then
+            echo "Stockfish binary ready"
+        else
+            echo "ERROR: Binary extraction failed"
+            exit 1
         fi
     else
         echo "Architecture $ARCH detected. Trying system stockfish..."
