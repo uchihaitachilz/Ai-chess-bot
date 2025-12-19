@@ -15,20 +15,32 @@ if [ ! -f "$STOCKFISH_BIN" ]; then
     
     # Detect architecture
     ARCH=$(uname -m)
-    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
     
     if [ "$ARCH" = "x86_64" ]; then
-        # Linux x86_64
+        # Linux x86_64 - download Stockfish 16
         STOCKFISH_URL="https://github.com/official-stockfish/Stockfish/releases/download/sf_16/stockfish_16_linux_x64_avx2.zip"
-        curl -L -o "$STOCKFISH_DIR/stockfish.zip" "$STOCKFISH_URL"
-        unzip -q "$STOCKFISH_DIR/stockfish.zip" -d "$STOCKFISH_DIR"
-        mv "$STOCKFISH_DIR/stockfish_16_linux_x64_avx2/stockfish_16_linux_x64_avx2" "$STOCKFISH_BIN" 2>/dev/null || \
-        mv "$STOCKFISH_DIR/stockfish_16_linux_x64_avx2" "$STOCKFISH_BIN" 2>/dev/null || \
-        find "$STOCKFISH_DIR" -name "stockfish*" -type f -executable | head -1 | xargs -I {} mv {} "$STOCKFISH_BIN"
-        rm -rf "$STOCKFISH_DIR/stockfish.zip" "$STOCKFISH_DIR/stockfish_16_linux_x64_avx2" 2>/dev/null || true
+        curl -L -o "$STOCKFISH_DIR/stockfish.zip" "$STOCKFISH_URL" || {
+            echo "Failed to download, trying alternative URL..."
+            STOCKFISH_URL="https://stockfishchess.org/files/stockfish_16_linux_x64_avx2.zip"
+            curl -L -o "$STOCKFISH_DIR/stockfish.zip" "$STOCKFISH_URL" || exit 1
+        }
+        
+        cd "$STOCKFISH_DIR"
+        unzip -q stockfish.zip || exit 1
+        
+        # Find the stockfish binary in the extracted files
+        find . -name "stockfish*" -type f -executable ! -name "*.zip" | head -1 | xargs -I {} cp {} "$STOCKFISH_BIN" || {
+            # Try alternative extraction
+            if [ -d "stockfish_16_linux_x64_avx2" ]; then
+                cp stockfish_16_linux_x64_avx2/stockfish_16_linux_x64_avx2 "$STOCKFISH_BIN" 2>/dev/null || \
+                find stockfish_16_linux_x64_avx2 -name "stockfish*" -type f -executable | head -1 | xargs -I {} cp {} "$STOCKFISH_BIN"
+            fi
+        }
+        
+        chmod +x "$STOCKFISH_BIN"
+        rm -rf stockfish.zip stockfish_16_linux_x64_avx2 2>/dev/null || true
     else
-        # Try to use system stockfish or download generic binary
-        echo "Architecture $ARCH not directly supported, trying alternative..."
+        echo "Architecture $ARCH detected. Trying system stockfish..."
         if command -v stockfish &> /dev/null; then
             ln -sf "$(which stockfish)" "$STOCKFISH_BIN"
         else
@@ -36,14 +48,14 @@ if [ ! -f "$STOCKFISH_BIN" ]; then
             exit 1
         fi
     fi
-    
-    chmod +x "$STOCKFISH_BIN"
 fi
 
 echo "Stockfish installed at: $STOCKFISH_BIN"
-"$STOCKFISH_BIN" --version || echo "Version check failed, but binary exists"
-
-# Export path for use in Python
-echo "$STOCKFISH_DIR" >> "$GITHUB_ENV" 2>/dev/null || true
-export PATH="$STOCKFISH_DIR:$PATH"
+if [ -f "$STOCKFISH_BIN" ]; then
+    "$STOCKFISH_BIN" --version || echo "Binary exists but version check failed"
+    echo "SUCCESS: Stockfish is ready at $STOCKFISH_BIN"
+else
+    echo "ERROR: Stockfish binary not found at $STOCKFISH_BIN"
+    exit 1
+fi
 
