@@ -26,7 +26,12 @@ if [ ! -f "$STOCKFISH_BIN" ]; then
         }
         
         cd "$STOCKFISH_DIR"
-        unzip -q stockfish.zip || exit 1
+        # Try unzip, if not available use Python
+        if command -v unzip &> /dev/null; then
+            unzip -q stockfish.zip || exit 1
+        else
+            python3 -m zipfile -e stockfish.zip . || exit 1
+        fi
         
         # Find the stockfish binary in the extracted files
         find . -name "stockfish*" -type f -executable ! -name "*.zip" | head -1 | xargs -I {} cp {} "$STOCKFISH_BIN" || {
