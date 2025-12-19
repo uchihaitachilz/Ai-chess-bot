@@ -312,22 +312,45 @@ for asset_info in urls:
                                 # Found a large file, use it as the binary
                                 import shutil
                                 target_binary_abs = os.path.abspath(target_binary)
-                                print(f"Copying {full_path} to {target_binary_abs}")
-                                # Remove target if it exists (file or directory)
-                                if os.path.exists(target_binary_abs):
-                                    if os.path.isdir(target_binary_abs):
-                                        shutil.rmtree(target_binary_abs)
-                                    else:
-                                        os.remove(target_binary_abs)
+                                print(f"Found binary: {full_path} (size: {file_size} bytes)")
+                                print(f"Target location: {target_binary_abs}")
+                                
                                 # Verify source exists before copying
-                                if not os.path.exists(full_path):
-                                    print(f"ERROR: Source file {full_path} does not exist!")
+                                if not os.path.exists(full_path) or not os.path.isfile(full_path):
+                                    print(f"ERROR: Source file {full_path} does not exist or is not a file!")
                                     continue
-                                shutil.copy2(full_path, target_binary_abs)
-                                os.chmod(target_binary_abs, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-                                print(f"SUCCESS: Found binary at: {full_path} -> {target_binary_abs}")
-                                binary_found = True
-                                break
+                                
+                                # Copy to a temporary name first (in case target is a directory)
+                                temp_target = target_binary_abs + ".tmp"
+                                try:
+                                    print(f"Copying to temporary location: {temp_target}")
+                                    shutil.copy2(full_path, temp_target)
+                                    os.chmod(temp_target, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                                    
+                                    # Now remove the target if it exists (file or directory)
+                                    if os.path.exists(target_binary_abs):
+                                        if os.path.isdir(target_binary_abs):
+                                            print(f"Removing directory: {target_binary_abs}")
+                                            shutil.rmtree(target_binary_abs)
+                                        else:
+                                            print(f"Removing file: {target_binary_abs}")
+                                            os.remove(target_binary_abs)
+                                    
+                                    # Rename temp file to final name
+                                    print(f"Renaming {temp_target} to {target_binary_abs}")
+                                    os.rename(temp_target, target_binary_abs)
+                                    
+                                    print(f"SUCCESS: Binary installed at: {target_binary_abs}")
+                                    binary_found = True
+                                    break
+                                except Exception as copy_error:
+                                    print(f"ERROR copying file: {copy_error}")
+                                    import traceback
+                                    traceback.print_exc()
+                                    # Clean up temp file if it exists
+                                    if os.path.exists(temp_target):
+                                        os.remove(temp_target)
+                                    continue
                         if binary_found:
                             break
             
