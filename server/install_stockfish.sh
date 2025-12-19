@@ -302,101 +302,118 @@ for asset_info in urls:
                     for root, dirs, files in os.walk("stockfish"):
                         print(f"Walking: root={root}, dirs={dirs}, files={files}")
                         for file in files:
-                            full_path = os.path.join(root, file)
-                            file_size = os.path.getsize(full_path) if os.path.isfile(full_path) else 0
-                            is_exec = os.access(full_path, os.X_OK) if os.path.isfile(full_path) else False
+                            full_path = os.path.abspath(os.path.join(root, file))
+                            if not os.path.isfile(full_path):
+                                continue
+                            file_size = os.path.getsize(full_path)
+                            is_exec = os.access(full_path, os.X_OK)
                             print(f"  Checking: {full_path} (size: {file_size}, exec: {is_exec})")
-                            if os.path.isfile(full_path) and file_size > 5000000:  # > 5MB
+                            if file_size > 5000000:  # > 5MB
                                 # Found a large file, use it as the binary
                                 import shutil
-                                if os.path.exists(target_binary):
-                                    if os.path.isdir(target_binary):
-                                        shutil.rmtree(target_binary)
+                                target_binary_abs = os.path.abspath(target_binary)
+                                print(f"Copying {full_path} to {target_binary_abs}")
+                                # Remove target if it exists (file or directory)
+                                if os.path.exists(target_binary_abs):
+                                    if os.path.isdir(target_binary_abs):
+                                        shutil.rmtree(target_binary_abs)
                                     else:
-                                        os.remove(target_binary)
-                                shutil.copy2(full_path, target_binary)
-                                os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-                                print(f"Found binary at: {full_path} -> {target_binary}")
+                                        os.remove(target_binary_abs)
+                                # Verify source exists before copying
+                                if not os.path.exists(full_path):
+                                    print(f"ERROR: Source file {full_path} does not exist!")
+                                    continue
+                                shutil.copy2(full_path, target_binary_abs)
+                                os.chmod(target_binary_abs, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                                print(f"SUCCESS: Found binary at: {full_path} -> {target_binary_abs}")
                                 binary_found = True
                                 break
                         if binary_found:
                             break
             
-            # Remove target if it exists (file or directory) - only if we haven't found it yet
-            if not binary_found and os.path.exists(target_binary):
-                if os.path.isdir(target_binary):
-                    import shutil
-                    shutil.rmtree(target_binary)
-                else:
-                    os.remove(target_binary)
-            
-            # List all extracted files for debugging
-            print("Searching for binary in extracted files...")
-            print(f"Current directory: {os.getcwd()}")
-            print(f"Directory contents: {os.listdir('.')}")
-            all_files = []
-            for root, dirs, files in os.walk("."):
-                # Skip the tar file itself
-                if tar_path in files:
-                    files.remove(tar_path)
-                for file in files:
-                    full_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(full_path, ".")
-                    if os.path.isfile(full_path):
-                        size = os.path.getsize(full_path)
-                        all_files.append((full_path, size))
-                        print(f"  File: {rel_path} ({size / 1024 / 1024:.2f} MB, executable: {os.access(full_path, os.X_OK)})")
-            
-            # Also check if there's a stockfish directory with the binary inside
-            if os.path.isdir("stockfish"):
-                print("Found 'stockfish' directory, checking inside...")
-                stockfish_dir = "stockfish"
-                for root, dirs, files in os.walk(stockfish_dir):
+            # Skip further search if binary already found
+            if not binary_found:
+                # Remove target if it exists (file or directory) - only if we haven't found it yet
+                if os.path.exists(target_binary):
+                    if os.path.isdir(target_binary):
+                        import shutil
+                        shutil.rmtree(target_binary)
+                    else:
+                        os.remove(target_binary)
+                
+                # List all extracted files for debugging
+                print("Searching for binary in extracted files...")
+                print(f"Current directory: {os.getcwd()}")
+                print(f"Directory contents: {os.listdir('.')}")
+                all_files = []
+                for root, dirs, files in os.walk("."):
+                    # Skip the tar file itself
+                    if tar_path in files:
+                        files.remove(tar_path)
                     for file in files:
-                        full_path = os.path.join(root, file)
+                        full_path = os.path.abspath(os.path.join(root, file))
                         rel_path = os.path.relpath(full_path, ".")
                         if os.path.isfile(full_path):
                             size = os.path.getsize(full_path)
                             all_files.append((full_path, size))
                             print(f"  File: {rel_path} ({size / 1024 / 1024:.2f} MB, executable: {os.access(full_path, os.X_OK)})")
-            
-            if not all_files:
-                print("WARNING: No files found after extraction!")
-                print(f"Directory structure: {[os.path.join(root, d) for root, dirs, _ in os.walk('.') for d in dirs]}")
-            
-            # Search for the binary - try multiple patterns
-            # First, check if there's a stockfish/stockfish path (common structure)
-            if os.path.exists("stockfish/stockfish") and os.path.isfile("stockfish/stockfish"):
-                candidate = "stockfish/stockfish"
-                size = os.path.getsize(candidate)
-                if size > 1000000:
-                    import shutil
-                    shutil.copy2(candidate, target_binary)
-                    os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-                    print(f"Found binary at: {candidate} -> {target_binary}")
-                    binary_found = True
-            
-            if not binary_found:
-                search_patterns = [
-                    lambda f, s: os.path.basename(f) == 'stockfish' and s > 1000000 and os.access(f, os.X_OK),  # Exact name, executable
-                    lambda f, s: f.endswith('/stockfish') and s > 1000000 and os.access(f, os.X_OK),  # Ends with /stockfish
-                    lambda f, s: 'stockfish' in os.path.basename(f).lower() and s > 1000000 and not f.endswith('.tar') and os.access(f, os.X_OK),
-                    lambda f, s: s > 5000000 and os.access(f, os.X_OK),  # Large executable
-                    lambda f, s: s > 1000000 and not f.endswith('.tar') and not f.endswith('.txt') and not f.endswith('.md') and os.access(f, os.X_OK),
-                ]
-            
-            for pattern in search_patterns:
-                for file_path, file_size in all_files:
-                    if pattern(file_path, file_size):
-                        # Copy to target location
+                
+                # Also check if there's a stockfish directory with the binary inside
+                if os.path.isdir("stockfish"):
+                    print("Found 'stockfish' directory, checking inside...")
+                    stockfish_dir = "stockfish"
+                    for root, dirs, files in os.walk(stockfish_dir):
+                        for file in files:
+                            full_path = os.path.abspath(os.path.join(root, file))
+                            rel_path = os.path.relpath(full_path, ".")
+                            if os.path.isfile(full_path):
+                                size = os.path.getsize(full_path)
+                                all_files.append((full_path, size))
+                                print(f"  File: {rel_path} ({size / 1024 / 1024:.2f} MB, executable: {os.access(full_path, os.X_OK)})")
+                
+                if not all_files:
+                    print("WARNING: No files found after extraction!")
+                    print(f"Directory structure: {[os.path.join(root, d) for root, dirs, _ in os.walk('.') for d in dirs]}")
+                
+                # Search for the binary - try multiple patterns
+                # First, check if there's a stockfish/stockfish path (common structure)
+                if os.path.exists("stockfish/stockfish") and os.path.isfile("stockfish/stockfish"):
+                    candidate = os.path.abspath("stockfish/stockfish")
+                    size = os.path.getsize(candidate)
+                    if size > 1000000:
                         import shutil
-                        shutil.copy2(file_path, target_binary)
-                        os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-                        print(f"Found binary: {file_path} -> {target_binary}")
+                        target_binary_abs = os.path.abspath(target_binary)
+                        shutil.copy2(candidate, target_binary_abs)
+                        os.chmod(target_binary_abs, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                        print(f"Found binary at: {candidate} -> {target_binary_abs}")
                         binary_found = True
-                        break
-                if binary_found:
-                    break
+                
+                if not binary_found:
+                    search_patterns = [
+                        lambda f, s: os.path.basename(f) == 'stockfish' and s > 1000000 and os.access(f, os.X_OK),  # Exact name, executable
+                        lambda f, s: f.endswith('/stockfish') and s > 1000000 and os.access(f, os.X_OK),  # Ends with /stockfish
+                        lambda f, s: 'stockfish' in os.path.basename(f).lower() and s > 1000000 and not f.endswith('.tar') and os.access(f, os.X_OK),
+                        lambda f, s: s > 5000000 and os.access(f, os.X_OK),  # Large executable
+                        lambda f, s: s > 1000000 and not f.endswith('.tar') and not f.endswith('.txt') and not f.endswith('.md') and os.access(f, os.X_OK),
+                    ]
+                    
+                    for pattern in search_patterns:
+                        for file_path, file_size in all_files:
+                            if pattern(file_path, file_size):
+                                # Copy to target location
+                                import shutil
+                                target_binary_abs = os.path.abspath(target_binary)
+                                print(f"Copying {file_path} to {target_binary_abs}")
+                                if not os.path.exists(file_path):
+                                    print(f"ERROR: Source file {file_path} does not exist!")
+                                    continue
+                                shutil.copy2(file_path, target_binary_abs)
+                                os.chmod(target_binary_abs, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                                print(f"Found binary: {file_path} -> {target_binary_abs}")
+                                binary_found = True
+                                break
+                        if binary_found:
+                            break
             
             if binary_found:
                 # Cleanup
