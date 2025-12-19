@@ -54,25 +54,25 @@ try:
         if not url:
             continue
         
-    # Match ubuntu/linux and x64, prefer avx2
-    is_linux = 'linux' in name or 'ubuntu' in name
-    is_x64 = 'x64' in name or 'x86_64' in name or 'amd64' in name
-    is_avx2 = 'avx2' in name
-    is_zip = name.endswith('.zip')
-    is_tar = name.endswith('.tar') or name.endswith('.tar.gz')
-    is_binary = (is_zip or is_tar) and not name.endswith('.md') and not name.endswith('.txt') and not name.endswith('.sha256') and not name.endswith('.sig')
-    
-    if is_linux and is_x64 and is_binary:
-        priority = 3 if is_avx2 else 2 if 'bmi2' in name else 1  # Prefer AVX2, then BMI2
-        asset_info = {
-            'url': url,
-            'name': asset.get('name', ''),
-            'priority': priority,
-            'is_zip': is_zip,
-            'is_tar': is_tar
-        }
-        urls.append(asset_info)
-        print(f"Matched asset: {asset.get('name', '')} (priority: {priority})")
+        # Match ubuntu/linux and x64, prefer avx2
+        is_linux = 'linux' in name or 'ubuntu' in name
+        is_x64 = 'x64' in name or 'x86_64' in name or 'amd64' in name
+        is_avx2 = 'avx2' in name
+        is_zip = name.endswith('.zip')
+        is_tar = name.endswith('.tar') or name.endswith('.tar.gz')
+        is_binary = (is_zip or is_tar) and not name.endswith('.md') and not name.endswith('.txt') and not name.endswith('.sha256') and not name.endswith('.sig')
+        
+        if is_linux and is_x64 and is_binary:
+            priority = 3 if is_avx2 else 2 if 'bmi2' in name else 1  # Prefer AVX2, then BMI2
+            asset_info = {
+                'url': url,
+                'name': asset.get('name', ''),
+                'priority': priority,
+                'is_zip': is_zip,
+                'is_tar': is_tar
+            }
+            urls.append(asset_info)
+            print(f"Matched asset: {asset.get('name', '')} (priority: {priority})")
     
     # Sort by priority (AVX2 first)
     urls.sort(key=lambda x: x['priority'], reverse=True)
