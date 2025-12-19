@@ -253,8 +253,53 @@ for asset_info in urls:
             binary_found = False
             target_binary = "stockfish"
             
-            # Remove target if it exists (file or directory)
-            if os.path.exists(target_binary):
+            # Check if extraction created a stockfish directory with the binary inside
+            if os.path.isdir("stockfish"):
+                print("Found 'stockfish' directory after extraction")
+                # Look for the binary inside stockfish directory
+                stockfish_binary_paths = [
+                    "stockfish/stockfish",
+                    "stockfish/bin/stockfish",
+                    "stockfish/usr/bin/stockfish",
+                ]
+                for candidate_path in stockfish_binary_paths:
+                    if os.path.isfile(candidate_path) and os.path.getsize(candidate_path) > 1000000:
+                        import shutil
+                        if os.path.exists(target_binary):
+                            if os.path.isdir(target_binary):
+                                shutil.rmtree(target_binary)
+                            else:
+                                os.remove(target_binary)
+                        shutil.copy2(candidate_path, target_binary)
+                        os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                        print(f"Found binary at: {candidate_path} -> {target_binary}")
+                        binary_found = True
+                        break
+                
+                # If not found in common paths, search the directory
+                if not binary_found:
+                    print("Searching inside stockfish directory...")
+                    for root, dirs, files in os.walk("stockfish"):
+                        for file in files:
+                            full_path = os.path.join(root, file)
+                            if os.path.isfile(full_path) and os.path.getsize(full_path) > 5000000:  # > 5MB
+                                if os.access(full_path, os.X_OK) or file == "stockfish":
+                                    import shutil
+                                    if os.path.exists(target_binary):
+                                        if os.path.isdir(target_binary):
+                                            shutil.rmtree(target_binary)
+                                        else:
+                                            os.remove(target_binary)
+                                    shutil.copy2(full_path, target_binary)
+                                    os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                                    print(f"Found binary at: {full_path} -> {target_binary}")
+                                    binary_found = True
+                                    break
+                        if binary_found:
+                            break
+            
+            # Remove target if it exists (file or directory) - only if we haven't found it yet
+            if not binary_found and os.path.exists(target_binary):
                 if os.path.isdir(target_binary):
                     import shutil
                     shutil.rmtree(target_binary)
