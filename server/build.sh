@@ -4,12 +4,12 @@
 # Upgrade pip to latest version
 pip install --upgrade pip setuptools wheel
 
-# Install Rust if needed (for pydantic-core)
-# This is a workaround for Render's read-only filesystem issue
+# Set environment variables for Rust (if needed)
 export CARGO_HOME=/tmp/cargo
 export RUSTUP_HOME=/tmp/rustup
-mkdir -p $CARGO_HOME $RUSTUP_HOME
+mkdir -p $CARGO_HOME $RUSTUP_HOME 2>/dev/null || true
 
-# Install dependencies with pre-built wheels preferred
-pip install --only-binary :all: -r requirements.txt || pip install -r requirements.txt
+# Install dependencies - prefer pre-built wheels
+pip install --upgrade pip
+pip install -r requirements.txt
 

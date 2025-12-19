@@ -3,6 +3,6 @@ uvicorn[standard]==0.24.0
 gunicorn==21.2.0
 python-chess==1.999
 httpx==0.25.2
-pydantic>=2.0.0,<3.0.0
+pydantic==2.4.2
 python-dotenv==1.0.0
 
