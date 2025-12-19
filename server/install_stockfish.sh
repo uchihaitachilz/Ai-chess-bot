@@ -136,7 +136,47 @@ for url in urls:
         continue
 
 if not success:
-    print("ERROR: All download URLs failed")
+    print("Zip downloads failed, trying direct binary download...")
+    # Try downloading binary directly
+    try:
+        # Try to get latest release and find binary
+        api_url = "https://api.github.com/repos/official-stockfish/Stockfish/releases/latest"
+        with urllib.request.urlopen(api_url) as response:
+            release_data = json.loads(response.read())
+        
+        binary_url = None
+        for asset in release_data.get('assets', []):
+            name = asset.get('name', '')
+            if 'linux' in name.lower() and 'x64' in name.lower() and 'avx2' in name.lower() and not name.endswith('.zip'):
+                binary_url = asset.get('browser_download_url')
+                print(f"Found binary asset: {name}")
+                break
+        
+        if binary_url:
+            print(f"Downloading binary directly from {binary_url}...")
+            urllib.request.urlretrieve(binary_url, "stockfish")
+            os.chmod("stockfish", stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+            print("SUCCESS: Binary downloaded directly")
+            success = True
+    except Exception as e:
+        print(f"Direct binary download also failed: {e}")
+
+if not success:
+    print("ERROR: All download methods failed")
+    print("Trying to compile from source as last resort...")
+    # Last resort: try to use system package manager if available
+    import subprocess
+    try:
+        result = subprocess.run(['which', 'stockfish'], capture_output=True, text=True)
+        if result.returncode == 0:
+            stockfish_path = result.stdout.strip()
+            print(f"Found system stockfish at: {stockfish_path}")
+            os.symlink(stockfish_path, "stockfish")
+            success = True
+    except:
+        pass
+
+if not success:
     sys.exit(1)
 PYTHON_SCRIPT
         
