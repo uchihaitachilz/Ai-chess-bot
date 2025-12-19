@@ -268,25 +268,32 @@ for asset_info in urls:
             # Check if extraction created a stockfish directory with the binary inside
             if os.path.isdir("stockfish"):
                 print("Found 'stockfish' directory after extraction")
-                # Look for the binary inside stockfish directory
+                print(f"Contents of stockfish directory: {os.listdir('stockfish')}")
+                # Look for the binary inside stockfish directory - try common names
                 stockfish_binary_paths = [
                     "stockfish/stockfish",
                     "stockfish/bin/stockfish",
                     "stockfish/usr/bin/stockfish",
                 ]
                 for candidate_path in stockfish_binary_paths:
-                    if os.path.isfile(candidate_path) and os.path.getsize(candidate_path) > 1000000:
-                        import shutil
-                        if os.path.exists(target_binary):
-                            if os.path.isdir(target_binary):
-                                shutil.rmtree(target_binary)
-                            else:
-                                os.remove(target_binary)
-                        shutil.copy2(candidate_path, target_binary)
-                        os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-                        print(f"Found binary at: {candidate_path} -> {target_binary}")
-                        binary_found = True
-                        break
+                    print(f"Checking: {candidate_path}")
+                    if os.path.isfile(candidate_path):
+                        size = os.path.getsize(candidate_path)
+                        print(f"  Found file, size: {size} bytes")
+                        if size > 1000000:
+                            import shutil
+                            if os.path.exists(target_binary):
+                                if os.path.isdir(target_binary):
+                                    shutil.rmtree(target_binary)
+                                else:
+                                    os.remove(target_binary)
+                            shutil.copy2(candidate_path, target_binary)
+                            os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                            print(f"Found binary at: {candidate_path} -> {target_binary}")
+                            binary_found = True
+                            break
+                    else:
+                        print(f"  Not found or not a file")
                 
                 # If not found in common paths, search the directory
                 if not binary_found:
