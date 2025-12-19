@@ -223,8 +223,19 @@ for asset_info in urls:
             
             # Extract tar
             print("Extracting tar archive...")
-            with tarfile.open(tar_path, 'r') as tar_ref:
-                tar_ref.extractall(".")
+            try:
+                with tarfile.open(tar_path, 'r') as tar_ref:
+                    print(f"Tar file members: {len(tar_ref.getmembers())}")
+                    print("First few members:")
+                    for member in tar_ref.getmembers()[:5]:
+                        print(f"  - {member.name} ({member.size} bytes, isfile: {member.isfile()})")
+                    tar_ref.extractall(".")
+                    print("Extraction complete")
+            except Exception as e:
+                print(f"Error extracting tar: {e}")
+                import traceback
+                traceback.print_exc()
+                raise
             
             # Find the binary - handle case where stockfish might be a directory
             binary_found = False
