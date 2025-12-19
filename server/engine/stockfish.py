@@ -25,7 +25,7 @@ def _find_stockfish_path() -> str:
     # Common locations (check user-installed first, then system)
     home_dir = os.path.expanduser("~")
     common_paths = [
-        f"{home_dir}/stockfish/stockfish",  # User-installed via script
+        f"{home_dir}/stockfish/stockfish",  # User-installed via script (Render)
         "/usr/games/stockfish",  # Debian/Ubuntu standard location
         "/usr/bin/stockfish",
         "/opt/homebrew/bin/stockfish",
@@ -33,7 +33,7 @@ def _find_stockfish_path() -> str:
     ]
     
     for path in common_paths:
-        if os.path.exists(path):
+        if os.path.exists(path) and os.access(path, os.X_OK):
             return path
     
     # Try to find in PATH
@@ -41,8 +41,9 @@ def _find_stockfish_path() -> str:
     if stockfish_path:
         return stockfish_path
     
-    # Default fallback (try /usr/games first since that's where apt installs it)
-    return "/usr/games/stockfish"
+    # Default fallback (user-installed location)
+    default_path = f"{home_dir}/stockfish/stockfish"
+    return default_path
 
 
 def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
