@@ -234,8 +234,18 @@ for asset_info in urls:
                             print("First few members:")
                             for member in members[:5]:
                                 print(f"  - {member.name} ({member.size} bytes, isfile: {member.isfile()}, type: {member.type})")
-                            tar_ref.extractall(".")
-                            print("Extraction complete")
+                            
+                            # Extract and verify
+                            print(f"Extracting to: {os.getcwd()}")
+                            tar_ref.extractall(".", filter='data')  # Use filter to avoid security issues
+                            
+                            # Verify extraction worked
+                            print(f"After extraction, directory contents: {os.listdir('.')}")
+                            if os.path.isdir("stockfish"):
+                                print(f"SUCCESS: stockfish directory created with {len(os.listdir('stockfish'))} items")
+                            else:
+                                print("WARNING: stockfish directory not found after extraction")
+                            
                             extracted = True
                             break
                 except tarfile.ReadError:
@@ -243,6 +253,8 @@ for asset_info in urls:
                     continue
                 except Exception as e:
                     print(f"Mode {mode} failed: {e}")
+                    import traceback
+                    traceback.print_exc()
                     continue
             
             if not extracted:
