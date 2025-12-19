@@ -22,10 +22,10 @@ def _find_stockfish_path() -> str:
     if env_path and os.path.exists(env_path):
         return env_path
     
-    # Common locations
+    # Common locations (Debian/Ubuntu typically uses /usr/games/stockfish)
     common_paths = [
+        "/usr/games/stockfish",  # Debian/Ubuntu standard location
         "/usr/bin/stockfish",
-        "/usr/games/stockfish",
         "/opt/homebrew/bin/stockfish",
         "/usr/local/bin/stockfish",
     ]
@@ -39,8 +39,8 @@ def _find_stockfish_path() -> str:
     if stockfish_path:
         return stockfish_path
     
-    # Default fallback
-    return "/usr/bin/stockfish"
+    # Default fallback (try /usr/games first since that's where apt installs it)
+    return "/usr/games/stockfish"
 
 
 def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
