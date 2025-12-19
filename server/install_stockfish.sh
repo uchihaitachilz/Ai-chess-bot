@@ -76,7 +76,8 @@ try:
             print(f"Matched asset: {name_original} (priority: {priority})")
     
     # Sort by priority (AVX2 first)
-    urls.sort(key=lambda x: x['priority'], reverse=True)
+    if urls:
+        urls.sort(key=lambda x: x['priority'], reverse=True)
     
     if not urls:
         print("No matching assets found. Listing all assets:")
