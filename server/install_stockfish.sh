@@ -49,30 +49,31 @@ try:
     
     # Find all Linux x64 AVX2 assets (zip or binary) - be more flexible with matching
     for asset in assets:
-        name = asset.get('name', '').lower()
+        name_lower = asset.get('name', '').lower()
+        name_original = asset.get('name', '')
         url = asset.get('browser_download_url')
         if not url:
             continue
         
         # Match ubuntu/linux and x64, prefer avx2
-        is_linux = 'linux' in name or 'ubuntu' in name
-        is_x64 = 'x64' in name or 'x86_64' in name or 'amd64' in name
-        is_avx2 = 'avx2' in name
-        is_zip = name.endswith('.zip')
-        is_tar = name.endswith('.tar') or name.endswith('.tar.gz')
-        is_binary = (is_zip or is_tar) and not name.endswith('.md') and not name.endswith('.txt') and not name.endswith('.sha256') and not name.endswith('.sig')
+        is_linux = 'linux' in name_lower or 'ubuntu' in name_lower
+        is_x64 = 'x64' in name_lower or 'x86_64' in name_lower or 'amd64' in name_lower
+        is_avx2 = 'avx2' in name_lower
+        is_zip = name_lower.endswith('.zip')
+        is_tar = name_lower.endswith('.tar') or name_lower.endswith('.tar.gz')
+        is_binary = (is_zip or is_tar) and not name_lower.endswith('.md') and not name_lower.endswith('.txt') and not name_lower.endswith('.sha256') and not name_lower.endswith('.sig')
         
         if is_linux and is_x64 and is_binary:
-            priority = 3 if is_avx2 else 2 if 'bmi2' in name else 1  # Prefer AVX2, then BMI2
+            priority = 3 if is_avx2 else 2 if 'bmi2' in name_lower else 1  # Prefer AVX2, then BMI2
             asset_info = {
                 'url': url,
-                'name': asset.get('name', ''),
+                'name': name_original,
                 'priority': priority,
                 'is_zip': is_zip,
                 'is_tar': is_tar
             }
             urls.append(asset_info)
-            print(f"Matched asset: {asset.get('name', '')} (priority: {priority})")
+            print(f"Matched asset: {name_original} (priority: {priority})")
     
     # Sort by priority (AVX2 first)
     urls.sort(key=lambda x: x['priority'], reverse=True)
@@ -238,6 +239,8 @@ for asset_info in urls:
             
             # List all extracted files for debugging
             print("Searching for binary in extracted files...")
+            print(f"Current directory: {os.getcwd()}")
+            print(f"Directory contents: {os.listdir('.')}")
             all_files = []
             for root, dirs, files in os.walk("."):
                 # Skip the tar file itself
@@ -245,11 +248,15 @@ for asset_info in urls:
                     files.remove(tar_path)
                 for file in files:
                     full_path = os.path.join(root, file)
+                    rel_path = os.path.relpath(full_path, ".")
                     if os.path.isfile(full_path):
                         size = os.path.getsize(full_path)
                         all_files.append((full_path, size))
-                        if 'stockfish' in file.lower() or size > 1000000:
-                            print(f"  Found: {full_path} ({size / 1024 / 1024:.2f} MB)")
+                        print(f"  File: {rel_path} ({size / 1024 / 1024:.2f} MB, executable: {os.access(full_path, os.X_OK)})")
+            
+            if not all_files:
+                print("WARNING: No files found after extraction!")
+                print(f"Directory structure: {[os.path.join(root, d) for root, dirs, _ in os.walk('.') for d in dirs]}")
             
             # Search for the binary - try multiple patterns
             search_patterns = [
