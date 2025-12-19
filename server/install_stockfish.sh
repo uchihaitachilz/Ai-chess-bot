@@ -27,13 +27,43 @@ import zipfile
 import os
 import stat
 import sys
+import json
 
-# Try multiple release URLs
-urls = [
-    "https://github.com/official-stockfish/Stockfish/releases/download/sf_16/stockfish_16_linux_x64_avx2.zip",
-    "https://github.com/official-stockfish/Stockfish/releases/download/sf_15.1/stockfish_15.1_linux_x64_avx2.zip",
-    "https://github.com/official-stockfish/Stockfish/releases/download/sf_15/stockfish_15_linux_x64_avx2.zip",
-]
+# Get latest release info from GitHub API
+print("Fetching latest Stockfish release info...")
+try:
+    api_url = "https://api.github.com/repos/official-stockfish/Stockfish/releases/latest"
+    with urllib.request.urlopen(api_url) as response:
+        release_data = json.loads(response.read())
+    
+    # Find Linux x64 AVX2 asset
+    zip_url = None
+    for asset in release_data.get('assets', []):
+        name = asset.get('name', '')
+        if 'linux' in name.lower() and 'x64' in name.lower() and 'avx2' in name.lower() and name.endswith('.zip'):
+            zip_url = asset.get('browser_download_url')
+            print(f"Found release asset: {name}")
+            break
+    
+    if not zip_url:
+        # Fallback: try to construct URL from tag
+        tag = release_data.get('tag_name', '')
+        print(f"Release tag: {tag}, trying constructed URLs...")
+        urls = [
+            f"https://github.com/official-stockfish/Stockfish/releases/download/{tag}/stockfish_{tag}_linux_x64_avx2.zip",
+            f"https://github.com/official-stockfish/Stockfish/releases/download/{tag}/stockfish-{tag}-linux-x64-avx2.zip",
+        ]
+    else:
+        urls = [zip_url]
+except Exception as e:
+    print(f"Could not fetch release info: {e}")
+    print("Trying known working URLs...")
+    # Fallback to known working URLs
+    urls = [
+        "https://github.com/official-stockfish/Stockfish/releases/download/sf_16.1/stockfish_16.1_linux_x64_avx2.zip",
+        "https://github.com/official-stockfish/Stockfish/releases/download/sf_16/stockfish_16_linux_x64_avx2.zip",
+        "https://github.com/official-stockfish/Stockfish/releases/download/sf_15.1/stockfish_15.1_linux_x64_avx2.zip",
+    ]
 
 zip_path = "stockfish.zip"
 success = False
