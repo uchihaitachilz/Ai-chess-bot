@@ -8,7 +8,7 @@ services:
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: ENGINE_PATH
-        sync: false  # Will be set dynamically
+        sync: false  # Will be found automatically by Python code via home directory
       - key: ENGINE_DEPTH
         value: 12
       - key: OPENAI_API_KEY

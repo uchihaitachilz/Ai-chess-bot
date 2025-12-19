@@ -511,6 +511,12 @@ echo "Stockfish installed at: $STOCKFISH_BIN"
 if [ -f "$STOCKFISH_BIN" ]; then
     "$STOCKFISH_BIN" --version || echo "Binary exists but version check failed"
     echo "SUCCESS: Stockfish is ready at $STOCKFISH_BIN"
+    # Write path to file for Python to read
+    echo "$STOCKFISH_BIN" > "$STOCKFISH_DIR/engine_path.txt"
+    echo "Wrote engine path to: $STOCKFISH_DIR/engine_path.txt"
+    # Also export for current session (though this won't persist to runtime)
+    export ENGINE_PATH="$STOCKFISH_BIN"
+    echo "ENGINE_PATH=$STOCKFISH_BIN"
 else
     echo "ERROR: Stockfish binary not found at $STOCKFISH_BIN"
     exit 1
