@@ -146,23 +146,39 @@ for asset_info in urls:
                 else:
                     os.remove(target_binary)
             
-            # Search for the binary
+            # List all extracted files for debugging
+            print("Searching for binary in extracted files...")
+            all_files = []
             for root, dirs, files in os.walk("."):
                 # Skip the zip file itself
-                if root == "." and zip_path in files:
-                    continue
-                    
+                if zip_path in files:
+                    files.remove(zip_path)
                 for file in files:
-                    if file.startswith("stockfish") and not file.endswith(".zip") and not file.endswith(".txt") and not file.endswith(".md"):
-                        src = os.path.join(root, file)
-                        if os.path.isfile(src) and os.path.getsize(src) > 1000000:  # > 1MB
-                            # Copy to target location
-                            import shutil
-                            shutil.copy2(src, target_binary)
-                            os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-                            print(f"Found binary: {src} -> {target_binary}")
-                            binary_found = True
-                            break
+                    full_path = os.path.join(root, file)
+                    if os.path.isfile(full_path):
+                        size = os.path.getsize(full_path)
+                        all_files.append((full_path, size))
+                        if 'stockfish' in file.lower() or size > 1000000:
+                            print(f"  Found: {full_path} ({size / 1024 / 1024:.2f} MB)")
+            
+            # Search for the binary - try multiple patterns
+            search_patterns = [
+                lambda f, s: f.endswith('stockfish') and s > 1000000,  # Exact name
+                lambda f, s: 'stockfish' in os.path.basename(f).lower() and s > 1000000 and not f.endswith('.zip'),
+                lambda f, s: s > 5000000 and os.access(f, os.X_OK),  # Large executable
+                lambda f, s: s > 1000000 and not f.endswith('.zip') and not f.endswith('.txt') and not f.endswith('.md'),
+            ]
+            
+            for pattern in search_patterns:
+                for file_path, file_size in all_files:
+                    if pattern(file_path, file_size):
+                        # Copy to target location
+                        import shutil
+                        shutil.copy2(file_path, target_binary)
+                        os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                        print(f"Found binary: {file_path} -> {target_binary}")
+                        binary_found = True
+                        break
                 if binary_found:
                     break
             
@@ -220,23 +236,39 @@ for asset_info in urls:
                 else:
                     os.remove(target_binary)
             
-            # Search for the binary
+            # List all extracted files for debugging
+            print("Searching for binary in extracted files...")
+            all_files = []
             for root, dirs, files in os.walk("."):
                 # Skip the tar file itself
-                if root == "." and tar_path in files:
-                    continue
-                    
+                if tar_path in files:
+                    files.remove(tar_path)
                 for file in files:
-                    if file.startswith("stockfish") and not file.endswith(".tar") and not file.endswith(".txt") and not file.endswith(".md"):
-                        src = os.path.join(root, file)
-                        if os.path.isfile(src) and os.path.getsize(src) > 1000000:  # > 1MB
-                            # Copy to target location
-                            import shutil
-                            shutil.copy2(src, target_binary)
-                            os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-                            print(f"Found binary: {src} -> {target_binary}")
-                            binary_found = True
-                            break
+                    full_path = os.path.join(root, file)
+                    if os.path.isfile(full_path):
+                        size = os.path.getsize(full_path)
+                        all_files.append((full_path, size))
+                        if 'stockfish' in file.lower() or size > 1000000:
+                            print(f"  Found: {full_path} ({size / 1024 / 1024:.2f} MB)")
+            
+            # Search for the binary - try multiple patterns
+            search_patterns = [
+                lambda f, s: f.endswith('stockfish') and s > 1000000,  # Exact name
+                lambda f, s: 'stockfish' in os.path.basename(f).lower() and s > 1000000 and not f.endswith('.tar'),
+                lambda f, s: s > 5000000 and os.access(f, os.X_OK),  # Large executable
+                lambda f, s: s > 1000000 and not f.endswith('.tar') and not f.endswith('.txt') and not f.endswith('.md'),
+            ]
+            
+            for pattern in search_patterns:
+                for file_path, file_size in all_files:
+                    if pattern(file_path, file_size):
+                        # Copy to target location
+                        import shutil
+                        shutil.copy2(file_path, target_binary)
+                        os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                        print(f"Found binary: {file_path} -> {target_binary}")
+                        binary_found = True
+                        break
                 if binary_found:
                     break
             
