@@ -1,0 +1,12 @@
+TO ADD TUSHI'S IMAGE:
+
+1. Copy your Tushi image file to this folder
+2. Rename it to one of these:
+   - tushi.jpg
+   - tushi.png
+   - tushi.jpeg
+
+3. The image will automatically appear in the commentary panel!
+
+The file should be placed at:
+/Users/aarushyadav/Documents/Chess-Bot/client/public/tushi.jpg

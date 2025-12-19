@@ -1,0 +1,14 @@
+HOW TO ADD TUSHI'S PHOTO:
+
+1. Place the image file in this folder (client/public/)
+2. Name it one of these:
+   - tushi.jpg
+   - tushi.png
+   - tushi.jpeg
+   - tushi.JPG
+   - tushi.PNG
+   - tushi.JPEG
+
+3. The image will automatically appear in the commentary panel!
+
+If you have the image file, just copy it here with one of those names.
