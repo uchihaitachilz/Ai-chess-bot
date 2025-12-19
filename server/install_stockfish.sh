@@ -278,6 +278,19 @@ for asset_info in urls:
                         all_files.append((full_path, size))
                         print(f"  File: {rel_path} ({size / 1024 / 1024:.2f} MB, executable: {os.access(full_path, os.X_OK)})")
             
+            # Also check if there's a stockfish directory with the binary inside
+            if os.path.isdir("stockfish"):
+                print("Found 'stockfish' directory, checking inside...")
+                stockfish_dir = "stockfish"
+                for root, dirs, files in os.walk(stockfish_dir):
+                    for file in files:
+                        full_path = os.path.join(root, file)
+                        rel_path = os.path.relpath(full_path, ".")
+                        if os.path.isfile(full_path):
+                            size = os.path.getsize(full_path)
+                            all_files.append((full_path, size))
+                            print(f"  File: {rel_path} ({size / 1024 / 1024:.2f} MB, executable: {os.access(full_path, os.X_OK)})")
+            
             if not all_files:
                 print("WARNING: No files found after extraction!")
                 print(f"Directory structure: {[os.path.join(root, d) for root, dirs, _ in os.walk('.') for d in dirs]}")
