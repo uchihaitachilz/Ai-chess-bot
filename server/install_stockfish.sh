@@ -63,7 +63,7 @@ try:
     is_binary = (is_zip or is_tar) and not name.endswith('.md') and not name.endswith('.txt') and not name.endswith('.sha256') and not name.endswith('.sig')
     
     if is_linux and is_x64 and is_binary:
-        priority = 2 if is_avx2 else 1  # Prefer AVX2
+        priority = 3 if is_avx2 else 2 if 'bmi2' in name else 1  # Prefer AVX2, then BMI2
         asset_info = {
             'url': url,
             'name': asset.get('name', ''),
@@ -72,6 +72,7 @@ try:
             'is_tar': is_tar
         }
         urls.append(asset_info)
+        print(f"Matched asset: {asset.get('name', '')} (priority: {priority})")
     
     # Sort by priority (AVX2 first)
     urls.sort(key=lambda x: x['priority'], reverse=True)
@@ -133,19 +134,33 @@ for asset_info in urls:
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(".")
             
-            # Find the binary
+            # Find the binary - handle case where stockfish might be a directory
             binary_found = False
+            target_binary = "stockfish"
+            
+            # Remove target if it exists (file or directory)
+            if os.path.exists(target_binary):
+                if os.path.isdir(target_binary):
+                    import shutil
+                    shutil.rmtree(target_binary)
+                else:
+                    os.remove(target_binary)
+            
+            # Search for the binary
             for root, dirs, files in os.walk("."):
+                # Skip the zip file itself
+                if root == "." and zip_path in files:
+                    continue
+                    
                 for file in files:
                     if file.startswith("stockfish") and not file.endswith(".zip") and not file.endswith(".txt") and not file.endswith(".md"):
                         src = os.path.join(root, file)
                         if os.path.isfile(src) and os.path.getsize(src) > 1000000:  # > 1MB
-                            dst = "stockfish"
-                            if os.path.exists(dst):
-                                os.remove(dst)
-                            os.rename(src, dst)
-                            os.chmod(dst, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-                            print(f"Found binary: {src} -> {dst}")
+                            # Copy to target location
+                            import shutil
+                            shutil.copy2(src, target_binary)
+                            os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                            print(f"Found binary: {src} -> {target_binary}")
                             binary_found = True
                             break
                 if binary_found:
@@ -193,19 +208,33 @@ for asset_info in urls:
             with tarfile.open(tar_path, 'r') as tar_ref:
                 tar_ref.extractall(".")
             
-            # Find the binary
+            # Find the binary - handle case where stockfish might be a directory
             binary_found = False
+            target_binary = "stockfish"
+            
+            # Remove target if it exists (file or directory)
+            if os.path.exists(target_binary):
+                if os.path.isdir(target_binary):
+                    import shutil
+                    shutil.rmtree(target_binary)
+                else:
+                    os.remove(target_binary)
+            
+            # Search for the binary
             for root, dirs, files in os.walk("."):
+                # Skip the tar file itself
+                if root == "." and tar_path in files:
+                    continue
+                    
                 for file in files:
                     if file.startswith("stockfish") and not file.endswith(".tar") and not file.endswith(".txt") and not file.endswith(".md"):
                         src = os.path.join(root, file)
                         if os.path.isfile(src) and os.path.getsize(src) > 1000000:  # > 1MB
-                            dst = "stockfish"
-                            if os.path.exists(dst):
-                                os.remove(dst)
-                            os.rename(src, dst)
-                            os.chmod(dst, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-                            print(f"Found binary: {src} -> {dst}")
+                            # Copy to target location
+                            import shutil
+                            shutil.copy2(src, target_binary)
+                            os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                            print(f"Found binary: {src} -> {target_binary}")
                             binary_found = True
                             break
                 if binary_found:
