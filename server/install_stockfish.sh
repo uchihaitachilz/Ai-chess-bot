@@ -93,11 +93,11 @@ try:
 except Exception as e:
     print(f"Could not fetch release info: {e}")
     print("Trying known working URLs...")
-    # Fallback to known working URLs
+    # Fallback to known working URLs - use latest release format
     urls = [
-        "https://github.com/official-stockfish/Stockfish/releases/download/sf_16.1/stockfish_16.1_linux_x64_avx2.zip",
-        "https://github.com/official-stockfish/Stockfish/releases/download/sf_16/stockfish_16_linux_x64_avx2.zip",
-        "https://github.com/official-stockfish/Stockfish/releases/download/sf_15.1/stockfish_15.1_linux_x64_avx2.zip",
+        {'url': 'https://github.com/official-stockfish/Stockfish/releases/download/sf_17.1/stockfish-ubuntu-x86-64-avx2.tar', 'name': 'stockfish-ubuntu-x86-64-avx2.tar', 'priority': 3, 'is_zip': False, 'is_tar': True},
+        {'url': 'https://github.com/official-stockfish/Stockfish/releases/download/sf_17.1/stockfish-ubuntu-x86-64.tar', 'name': 'stockfish-ubuntu-x86-64.tar', 'priority': 1, 'is_zip': False, 'is_tar': True},
+        {'url': 'https://github.com/official-stockfish/Stockfish/releases/download/sf_16.1/stockfish-ubuntu-x86-64-avx2.tar', 'name': 'stockfish-ubuntu-x86-64-avx2.tar', 'priority': 3, 'is_zip': False, 'is_tar': True},
     ]
 
 success = False
