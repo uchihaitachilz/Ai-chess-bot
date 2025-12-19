@@ -27,7 +27,7 @@ Complete step-by-step guide to deploy both frontend and backend on Render.
 - **Root Directory:** `server`
 - **Runtime:** `Python 3`
 - **Build Command:** `pip install -r requirements.txt`
-- **Start Command:** `gunicorn main:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120`
+- **Start Command:** `gunicorn main:app --bind 0.0.0.0:$PORT --workers 2 --worker-class uvicorn.workers.UvicornWorker --timeout 120`
 
 ### Step 3: Add Environment Variables (Backend)
 
