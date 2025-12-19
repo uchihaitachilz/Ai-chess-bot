@@ -221,21 +221,33 @@ for asset_info in urls:
             
             print(f"File size: {file_size / 1024 / 1024:.2f} MB")
             
-            # Extract tar
+            # Extract tar - try different modes
             print("Extracting tar archive...")
-            try:
-                with tarfile.open(tar_path, 'r') as tar_ref:
-                    print(f"Tar file members: {len(tar_ref.getmembers())}")
-                    print("First few members:")
-                    for member in tar_ref.getmembers()[:5]:
-                        print(f"  - {member.name} ({member.size} bytes, isfile: {member.isfile()})")
-                    tar_ref.extractall(".")
-                    print("Extraction complete")
-            except Exception as e:
-                print(f"Error extracting tar: {e}")
-                import traceback
-                traceback.print_exc()
-                raise
+            extracted = False
+            for mode in ['r', 'r:*', 'r:gz', 'r:bz2', 'r:xz']:
+                try:
+                    print(f"Trying mode: {mode}")
+                    with tarfile.open(tar_path, mode) as tar_ref:
+                        members = tar_ref.getmembers()
+                        print(f"Tar file members: {len(members)}")
+                        if members:
+                            print("First few members:")
+                            for member in members[:5]:
+                                print(f"  - {member.name} ({member.size} bytes, isfile: {member.isfile()}, type: {member.type})")
+                            tar_ref.extractall(".")
+                            print("Extraction complete")
+                            extracted = True
+                            break
+                except tarfile.ReadError:
+                    print(f"Mode {mode} failed: ReadError")
+                    continue
+                except Exception as e:
+                    print(f"Mode {mode} failed: {e}")
+                    continue
+            
+            if not extracted:
+                print("ERROR: Could not extract tar file with any mode")
+                raise Exception("Tar extraction failed")
             
             # Find the binary - handle case where stockfish might be a directory
             binary_found = False
