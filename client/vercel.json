@@ -3,12 +3,6 @@
   "outputDirectory": "dist",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "framework": "vite",
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://your-backend-url.vercel.app/api/$1"
-    }
-  ]
+  "framework": "vite"
 }
 
