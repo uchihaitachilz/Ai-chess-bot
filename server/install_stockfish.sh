@@ -291,22 +291,27 @@ for asset_info in urls:
                 # If not found in common paths, search the directory
                 if not binary_found:
                     print("Searching inside stockfish directory...")
+                    print(f"Contents of stockfish directory: {os.listdir('stockfish')}")
                     for root, dirs, files in os.walk("stockfish"):
+                        print(f"Walking: root={root}, dirs={dirs}, files={files}")
                         for file in files:
                             full_path = os.path.join(root, file)
-                            if os.path.isfile(full_path) and os.path.getsize(full_path) > 5000000:  # > 5MB
-                                if os.access(full_path, os.X_OK) or file == "stockfish":
-                                    import shutil
-                                    if os.path.exists(target_binary):
-                                        if os.path.isdir(target_binary):
-                                            shutil.rmtree(target_binary)
-                                        else:
-                                            os.remove(target_binary)
-                                    shutil.copy2(full_path, target_binary)
-                                    os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-                                    print(f"Found binary at: {full_path} -> {target_binary}")
-                                    binary_found = True
-                                    break
+                            file_size = os.path.getsize(full_path) if os.path.isfile(full_path) else 0
+                            is_exec = os.access(full_path, os.X_OK) if os.path.isfile(full_path) else False
+                            print(f"  Checking: {full_path} (size: {file_size}, exec: {is_exec})")
+                            if os.path.isfile(full_path) and file_size > 5000000:  # > 5MB
+                                # Found a large file, use it as the binary
+                                import shutil
+                                if os.path.exists(target_binary):
+                                    if os.path.isdir(target_binary):
+                                        shutil.rmtree(target_binary)
+                                    else:
+                                        os.remove(target_binary)
+                                shutil.copy2(full_path, target_binary)
+                                os.chmod(target_binary, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                                print(f"Found binary at: {full_path} -> {target_binary}")
+                                binary_found = True
+                                break
                         if binary_found:
                             break
             
