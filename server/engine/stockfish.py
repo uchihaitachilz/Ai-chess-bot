@@ -56,35 +56,35 @@ def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
     # Fallback to system Stockfish (python-chess)
     try:
         engine = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
-    
-    try:
-        limit = chess.engine.Limit(depth=ENGINE_DEPTH)
         
-        # Get the best move (synchronous)
-        result = engine.play(board, limit)
-        
-        # Apply the engine's move to get the new position
-        board_copy = board.copy()
-        board_copy.push(result.move)
-        
-        # Analyze the position after the engine's move
-        info = engine.analyse(board_copy, limit)
-        
-        # Extract evaluation
-        score = info["score"]
-        white_score = score.white()
-        
-        # Convert to pawns
-        if white_score.is_mate():
-            mate_score = white_score.mate()
-            evaluation = 100.0 if mate_score > 0 else -100.0
-        else:
-            cp_score = white_score.score()
-            evaluation = float(cp_score) / 100.0 if cp_score is not None else 0.0
-        
-        return result.move.uci(), evaluation
-    finally:
-        engine.quit()
+        try:
+            limit = chess.engine.Limit(depth=ENGINE_DEPTH)
+            
+            # Get the best move (synchronous)
+            result = engine.play(board, limit)
+            
+            # Apply the engine's move to get the new position
+            board_copy = board.copy()
+            board_copy.push(result.move)
+            
+            # Analyze the position after the engine's move
+            info = engine.analyse(board_copy, limit)
+            
+            # Extract evaluation
+            score = info["score"]
+            white_score = score.white()
+            
+            # Convert to pawns
+            if white_score.is_mate():
+                mate_score = white_score.mate()
+                evaluation = 100.0 if mate_score > 0 else -100.0
+            else:
+                cp_score = white_score.score()
+                evaluation = float(cp_score) / 100.0 if cp_score is not None else 0.0
+            
+            return result.move.uci(), evaluation
+        finally:
+            engine.quit()
     except Exception as e:
         raise RuntimeError(f"Both Python Stockfish and system Stockfish failed. Error: {str(e)}")
 
