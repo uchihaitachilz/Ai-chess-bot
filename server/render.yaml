@@ -4,7 +4,7 @@ services:
     env: python
     plan: free
     pythonVersion: 3.11
-    buildCommand: sudo apt-get update -qq && sudo apt-get install -y stockfish -qq && which stockfish && stockfish --version && cd server && pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
+    buildCommand: cd .. && sudo apt-get update -qq && sudo apt-get install -y stockfish -qq && which stockfish && stockfish --version && cd server && pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: ENGINE_PATH
