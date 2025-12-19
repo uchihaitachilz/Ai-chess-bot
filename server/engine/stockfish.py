@@ -28,19 +28,22 @@ def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
     # Try Python stockfish package first (works on Render without system installation)
     if USE_PYTHON_STOCKFISH:
         try:
-            sf = PyStockfish()
-            sf.set_depth(ENGINE_DEPTH)
+            sf = PyStockfish(depth=ENGINE_DEPTH)
             sf.set_fen_position(board_fen)
             best_move = sf.get_best_move()
             
-            # Get evaluation
+            if not best_move:
+                raise ValueError("No best move returned")
+            
+            # Get evaluation of current position
             evaluation_info = sf.get_evaluation()
             if evaluation_info['type'] == 'mate':
                 evaluation = 100.0 if evaluation_info['value'] > 0 else -100.0
             else:
+                # Convert centipawns to pawns
                 evaluation = float(evaluation_info['value']) / 100.0
             
-            # Apply the move to get new position
+            # Apply the move and get evaluation of new position
             board.push(chess.Move.from_uci(best_move))
             sf.set_fen_position(board.fen())
             eval_after = sf.get_evaluation()
@@ -52,9 +55,11 @@ def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
             return best_move, evaluation
         except Exception as e:
             print(f"Python Stockfish failed: {e}, falling back to system Stockfish")
+            # Continue to fallback
     
-    # Fallback to system Stockfish
-    engine = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
+    # Fallback to system Stockfish (python-chess)
+    try:
+        engine = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
     
     try:
         limit = chess.engine.Limit(depth=ENGINE_DEPTH)
@@ -84,6 +89,8 @@ def _get_best_move_sync(board_fen: str) -> Tuple[str, float]:
         return result.move.uci(), evaluation
     finally:
         engine.quit()
+    except Exception as e:
+        raise RuntimeError(f"Both Python Stockfish and system Stockfish failed. Error: {str(e)}")
 
 
 async def get_best_move(board: chess.Board) -> Tuple[str, float]:
