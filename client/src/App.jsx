@@ -507,7 +507,7 @@ function App() {
         {/* Clean Header Banner with Animation */}
         <div className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 rounded-lg shadow-2xl mb-6 py-8 px-6 animate-pulse hover:animate-none transition-all duration-300 hover:shadow-purple-500/50 hover:scale-[1.02]">
           <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-3 tracking-tight animate-fade-in drop-shadow-lg">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3 tracking-tight animate-fade-in drop-shadow-lg whitespace-nowrap overflow-hidden">
               <span className="inline-block animate-bounce" style={{ animationDelay: '0s' }}>T</span>
               <span className="inline-block animate-bounce" style={{ animationDelay: '0.1s' }}>U</span>
               <span className="inline-block animate-bounce" style={{ animationDelay: '0.2s' }}>S</span>
@@ -547,24 +547,24 @@ function App() {
             <div className="bg-white rounded-lg shadow-2xl p-4 md:p-6">
               {/* Color Selection Screen */}
               {!playerColor ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-6">Choose Your Color</h2>
-                  <div className="flex gap-6">
+                <div className="flex flex-col items-center justify-center py-8 sm:py-12">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Choose Your Color</h2>
+                  <div className="flex gap-4 sm:gap-6">
                     <button
                       onClick={() => startGame('w')}
-                      className="px-8 py-4 bg-white border-4 border-gray-300 rounded-lg shadow-lg hover:border-purple-500 hover:shadow-xl transition-all duration-200 flex flex-col items-center gap-3 hover:scale-105"
+                      className="px-6 sm:px-8 py-3 sm:py-4 bg-white border-4 border-gray-300 rounded-lg shadow-lg hover:border-purple-500 hover:shadow-xl transition-all duration-200 flex flex-col items-center gap-2 sm:gap-3 hover:scale-105"
                     >
-                      <div className="text-6xl">♔</div>
-                      <span className="font-bold text-gray-800">Play as White</span>
-                      <span className="text-sm text-gray-600">You move first</span>
+                      <div className="text-4xl sm:text-6xl">♔</div>
+                      <span className="font-bold text-gray-800 text-sm sm:text-base whitespace-nowrap">Play as White</span>
+                      <span className="text-xs sm:text-sm text-gray-600">You move first</span>
                     </button>
                     <button
                       onClick={() => startGame('b')}
-                      className="px-8 py-4 bg-gray-800 border-4 border-gray-600 rounded-lg shadow-lg hover:border-purple-500 hover:shadow-xl transition-all duration-200 flex flex-col items-center gap-3 hover:scale-105"
+                      className="px-6 sm:px-8 py-3 sm:py-4 bg-gray-800 border-4 border-gray-600 rounded-lg shadow-lg hover:border-purple-500 hover:shadow-xl transition-all duration-200 flex flex-col items-center gap-2 sm:gap-3 hover:scale-105"
                     >
-                      <div className="text-6xl">♚</div>
-                      <span className="font-bold text-white">Play as Black</span>
-                      <span className="text-sm text-gray-400">Engine moves first</span>
+                      <div className="text-4xl sm:text-6xl">♚</div>
+                      <span className="font-bold text-white text-sm sm:text-base whitespace-nowrap">Play as Black</span>
+                      <span className="text-xs sm:text-sm text-gray-400">Engine moves first</span>
                     </button>
                   </div>
                 </div>
