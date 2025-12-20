@@ -410,13 +410,22 @@ function App() {
           // Check if this was a bad move for improvement tips
           if (currentEval !== null && prevEval !== null) {
             // Calculate evaluation change from player's perspective
+            // Evaluation from backend is always from white's perspective
             // For white: positive eval is good, so if eval drops, it's bad
-            // For black: negative eval is good, so if eval becomes more positive, it's bad
-            const evalChange = playerColor === 'w' 
-              ? (currentEval - prevEval)  // White: positive is good, so negative change is bad
-              : (prevEval - currentEval)  // Black: negative is good, so if current > prev (less negative), it's bad
+            // For black: negative eval is good, so we need to flip the perspective
+            let playerPrevEval = prevEval
+            let playerCurrentEval = currentEval
             
-            // If evaluation dropped significantly, it's a bad move
+            if (playerColor === 'b') {
+              // Flip evaluation for black player (negative is good for black)
+              playerPrevEval = -prevEval
+              playerCurrentEval = -currentEval
+            }
+            
+            // Calculate change from player's perspective
+            const evalChange = playerCurrentEval - playerPrevEval
+            
+            // If evaluation dropped significantly from player's perspective, it's a bad move
             // Lower threshold to -0.3 to catch more bad moves
             const isBadMove = evalChange < -0.3
             
@@ -539,6 +548,7 @@ function App() {
             <Commentary
               commentary={commentary}
               evaluation={evaluation}
+              playerColor={playerColor}
             />
           </div>
 
@@ -626,6 +636,7 @@ function App() {
               evaluation={evaluation}
               prevEvaluation={prevEvaluation}
               isBadMove={lastPlayerMove !== null && evaluation !== null && prevEvaluation !== null}
+              playerColor={playerColor}
             />
           </div>
         </div>

@@ -480,13 +480,10 @@ async def generate_improvement_tips(
     Returns:
         Improvement tips string
     """
-    # Adjust evaluation based on side
-    if not is_white:
-        prev_eval = -previous_evaluation
-        curr_eval = -evaluation
-    else:
-        prev_eval = previous_evaluation
-        curr_eval = evaluation
+    # Evaluation is already from player's perspective (frontend flips it)
+    # So we don't need to flip it again - just use it directly
+    prev_eval = previous_evaluation
+    curr_eval = evaluation
     
     eval_change = curr_eval - prev_eval
     is_bad = eval_change < -0.5

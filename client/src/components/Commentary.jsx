@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-function Commentary({ commentary, evaluation }) {
+function Commentary({ commentary, evaluation, playerColor }) {
   const [imageSrc, setImageSrc] = useState(null)
   const [imageError, setImageError] = useState(false)
   
@@ -78,18 +78,22 @@ function Commentary({ commentary, evaluation }) {
               </p>
             </div>
             
-            {evaluation !== null && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-600 mb-1">Position Evaluation:</p>
-                <p className={`text-xl font-bold ${
-                  evaluation > 0 ? 'text-green-600' : 
-                  evaluation < 0 ? 'text-red-600' : 
-                  'text-gray-600'
-                }`}>
-                  {evaluation > 0 ? '+' : ''}{evaluation.toFixed(2)} pawns
-                </p>
-              </div>
-            )}
+            {evaluation !== null && (() => {
+              // Flip evaluation if player is black (evaluation is from white's perspective)
+              const playerEval = playerColor === 'b' ? -evaluation : evaluation
+              return (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-600 mb-1">Position Evaluation:</p>
+                  <p className={`text-xl font-bold ${
+                    playerEval > 0 ? 'text-green-600' : 
+                    playerEval < 0 ? 'text-red-600' : 
+                    'text-gray-600'
+                  }`}>
+                    {playerEval > 0 ? '+' : ''}{playerEval.toFixed(2)} pawns
+                  </p>
+                </div>
+              )
+            })()}
           </div>
         ) : (
           <div className="flex items-center justify-center h-full p-4">

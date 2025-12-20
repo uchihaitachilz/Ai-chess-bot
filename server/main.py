@@ -97,6 +97,7 @@ class ImprovementTipsRequest(BaseModel):
     move: str
     evaluation: float
     previousEvaluation: float
+    playerColor: str = "w"  # 'w' for white, 'b' for black
 
 
 class ImprovementTipsResponse(BaseModel):
@@ -121,11 +122,13 @@ async def get_improvement_tips(request: ImprovementTipsRequest):
     Generate improvement tips when player makes a bad move.
     """
     try:
+        # Frontend sends evaluation from player's perspective, so is_white should match playerColor
+        is_white = request.playerColor == "w"
         tips = await generate_improvement_tips(
             move=request.move,
             evaluation=request.evaluation,
             previous_evaluation=request.previousEvaluation,  # Pydantic model uses camelCase
-            is_white=True  # Default to white, can be enhanced later
+            is_white=is_white
         )
         
         return ImprovementTipsResponse(tips=tips)

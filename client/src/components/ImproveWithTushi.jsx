@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-function ImproveWithTushi({ playerMove, evaluation, prevEvaluation, isBadMove }) {
+function ImproveWithTushi({ playerMove, evaluation, prevEvaluation, isBadMove, playerColor }) {
   const [imageSrc, setImageSrc] = useState(null)
   const [imageError, setImageError] = useState(false)
   const [tips, setTips] = useState(null)
@@ -53,14 +53,19 @@ function ImproveWithTushi({ playerMove, evaluation, prevEvaluation, isBadMove })
   }, [isBadMove, playerMove, evaluation, prevEvaluation])
 
   const fetchImprovementTips = async (move, currentEval, previousEval) => {
-    console.log('fetchImprovementTips called:', { move, currentEval, previousEval })
+    console.log('fetchImprovementTips called:', { move, currentEval, previousEval, playerColor })
     setLoading(true)
     setShowAnimation(true)
     
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
       
+      // Flip evaluation if player is black (backend evaluation is from white's perspective)
+      const playerCurrentEval = playerColor === 'b' ? -currentEval : currentEval
+      const playerPrevEval = playerColor === 'b' ? -previousEval : previousEval
+      
       console.log('Calling improvement tips API:', `${apiUrl}/api/improvement-tips`)
+      console.log('Evaluation from player perspective:', { playerCurrentEval, playerPrevEval })
       
       const response = await fetch(`${apiUrl}/api/improvement-tips`, {
         method: 'POST',
@@ -69,8 +74,9 @@ function ImproveWithTushi({ playerMove, evaluation, prevEvaluation, isBadMove })
         },
         body: JSON.stringify({
           move: move,
-          evaluation: currentEval,
-          previousEvaluation: previousEval,
+          evaluation: playerCurrentEval,
+          previousEvaluation: playerPrevEval,
+          playerColor: playerColor,
         }),
       })
 
