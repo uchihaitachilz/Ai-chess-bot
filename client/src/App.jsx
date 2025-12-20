@@ -629,6 +629,13 @@ function App() {
             />
           </div>
         </div>
+        
+        {/* Footer */}
+        <div className="mt-8 mb-4 text-center">
+          <p className="text-white/80 text-sm">
+            Made with <span className="text-red-500 animate-pulse">❤️</span> by <span className="font-semibold">Aarush</span>
+          </p>
+        </div>
       </div>
     </div>
   )
